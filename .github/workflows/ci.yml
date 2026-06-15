@@ -1,0 +1,40 @@
+name: DriveEase CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # 1. Checkout code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Setup .NET 10
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # 3. Restore NuGet packages
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # 4. Build solution (no restore, already done)
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      # 5. Run domain tests
+      - name: Run Enrollment Domain Tests
+        run: dotnet test tests/DriveEase.Enrollments.Domain.Tests/ --no-build --configuration Release --verbosity normal
+
+      # 6. Run application tests
+      - name: Run Enrollment Application Tests
+        run: dotnet test tests/DriveEase.Enrollments.Application.Tests/ --no-build --configuration Release --verbosity normal
