@@ -1,10 +1,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Module: servicebus.bicep
-// Provisions: Azure Service Bus Namespace + topics + subscriptions
+// Provisions: Azure Service Bus Namespace + topics + subscriptions.
 //
-// DriveEase async event flows wired here:
-//   enrollment-events  → enrollment-confirmed, enrollment-alert
-//   lesson-events      → lesson-reminder, lesson-completed
+// Day 25: disableLocalAuth = true enforces that only Azure RBAC tokens
+//         (Managed Identity) can send/receive — no SAS connection strings.
+//         The RBAC role assignment (Azure Service Bus Data Owner → App Service MI)
+//         is wired in main.bicep after the App Service principal ID is known.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @description('Service Bus namespace name — must be globally unique')
@@ -28,7 +29,7 @@ resource namespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
   properties: {
     minimumTlsVersion:   '1.2'
     publicNetworkAccess: 'Enabled'
-    disableLocalAuth:    false
+    disableLocalAuth:    true    // SAS keys disabled — MI/RBAC only
   }
 }
 
@@ -99,17 +100,9 @@ resource lessonCompletedSub 'Microsoft.ServiceBus/namespaces/topics/subscription
   }
 }
 
-// ── Authorization rule for application (Send + Listen) ───────────────────────
-resource appAuthRule 'Microsoft.ServiceBus/namespaces/authorizationRules@2022-10-01-preview' = {
-  parent: namespace
-  name: 'DriveEaseApp'
-  properties: {
-    rights: ['Send', 'Listen']
-  }
-}
-
 // ── Outputs ───────────────────────────────────────────────────────────────────
-@secure()
-output primaryConnectionString string = appAuthRule.listKeys().primaryConnectionString
-output namespaceName           string = namespace.name
-output namespaceId             string = namespace.id
+// No connection string output — local auth is disabled.
+// App connects via DefaultAzureCredential using the FQDN below.
+output namespaceName string = namespace.name
+output namespaceId   string = namespace.id
+output namespaceFqdn string = '${namespace.name}.servicebus.windows.net'

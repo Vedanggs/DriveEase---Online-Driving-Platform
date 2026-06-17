@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using DriveEase.Students.Application.Commands.RegisterStudent;
 using DriveEase.Students.Application.Queries.GetStudent;
 using MediatR;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DriveEase.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class StudentsController(ISender sender) : ControllerBase

@@ -13,7 +13,12 @@ public static class LessonsModule
         string connectionString)
     {
         services.AddDbContext<LessonsDbContext>(opt =>
-            opt.UseSqlite(connectionString));
+        {
+            if (connectionString.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase))
+                opt.UseSqlite(connectionString);
+            else
+                opt.UseSqlServer(connectionString);
+        });
 
         services.AddScoped<ILessonRepository, LessonRepository>();
         services.AddScoped<IUpcomingLessonsQuery, UpcomingLessonsQuery>();

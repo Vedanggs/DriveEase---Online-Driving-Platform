@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using DriveEase.Schools.Application.Commands.RegisterSchool;
 using DriveEase.Schools.Application.Queries.GetAllSchools;
 using DriveEase.Schools.Application.Queries.GetSchool;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DriveEase.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class SchoolsController(ISender sender) : ControllerBase

@@ -58,7 +58,7 @@ az stack group create `
   --resource-group        $resourceGroup `
   --template-file         $templateFile `
   --parameters            $paramsFile `
-  --deny-settings-mode    denyWriteAndDelete `
+  --deny-settings-mode    denyDelete `
   --action-on-unmanage    deleteAll `
   --yes `
   --output table
@@ -69,7 +69,7 @@ Write-Host '[3/3] Stack outputs:' -ForegroundColor Yellow
 az stack group show `
   --name           $stackName `
   --resource-group $resourceGroup `
-  --query          '{apiUrl:outputs.apiUrl.value, sqlFqdn:outputs.sqlServerFqdn.value, serviceBus:outputs.serviceBusNamespace.value}' `
+  --query          '{apiUrl:outputs.apiUrl.value, sqlFqdn:outputs.sqlServerFqdn.value, serviceBus:outputs.serviceBusNamespace.value, keyVault:outputs.keyVaultName.value}' `
   --output         table
 
 Write-Host ''

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using DriveEase.Enrollments.Application.Commands.AssignInstructor;
 using DriveEase.Enrollments.Application.Commands.EnrollStudent;
 using DriveEase.Enrollments.Application.Commands.ProcessPayment;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DriveEase.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class EnrollmentsController(ISender sender) : ControllerBase

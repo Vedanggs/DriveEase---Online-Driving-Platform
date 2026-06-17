@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using DriveEase.Lessons.Application.Commands.BookLesson;
 using DriveEase.Lessons.Application.Commands.CompleteLesson;
 using DriveEase.Lessons.Application.Queries.GetLesson;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DriveEase.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public sealed class LessonsController(ISender sender) : ControllerBase

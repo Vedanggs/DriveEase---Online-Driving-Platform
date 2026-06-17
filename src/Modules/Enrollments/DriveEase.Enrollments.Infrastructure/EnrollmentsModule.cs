@@ -14,7 +14,12 @@ public static class EnrollmentsModule
         string connectionString)
     {
         services.AddDbContext<EnrollmentsDbContext>(opt =>
-            opt.UseSqlite(connectionString));
+        {
+            if (connectionString.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase))
+                opt.UseSqlite(connectionString);
+            else
+                opt.UseSqlServer(connectionString);
+        });
 
         services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
         services.AddScoped<IPaymentGateway, FakePaymentGateway>();

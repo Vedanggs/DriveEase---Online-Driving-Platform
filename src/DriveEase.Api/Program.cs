@@ -1,3 +1,4 @@
+using DriveEase.Api.Messaging;
 using DriveEase.Enrollments.Infrastructure;
 using DriveEase.Enrollments.Infrastructure.Persistence;
 using DriveEase.Lessons.Infrastructure;
@@ -9,21 +10,71 @@ using DriveEase.Shared.Messaging;
 using DriveEase.Students.Infrastructure;
 using DriveEase.Students.Infrastructure.Persistence;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Prevent a crashing background worker from taking down the whole host
 builder.Services.Configure<HostOptions>(opts =>
     opts.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
+
+// ── Entra ID authentication ───────────────────────────────────────────────────
+// Protects all [Authorize] endpoints with Azure AD JWT bearer tokens.
+// TenantId and ClientId are non-secret config values — safe in app settings.
+builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Shared event bus — in-memory (swap for Azure Service Bus / RabbitMQ in production)
-builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
+// ── Database ──────────────────────────────────────────────────────────────────
+// Azure: DefaultConnection is a Key Vault reference resolved by the App Service MI.
+//        The connection string uses "Authentication=Active Directory Managed Identity"
+//        — no password anywhere.
+// Local: fall back to per-module SQLite files (no Azure credentials needed).
 
-// Register MediatR handlers from all application assemblies
+var sqlConn = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Guard against unresolved Key Vault references (KV reference not yet propagated).
+var sqlResolved = !string.IsNullOrWhiteSpace(sqlConn) &&
+                  !sqlConn.StartsWith("@Microsoft.KeyVault", StringComparison.OrdinalIgnoreCase);
+
+if (sqlResolved)
+{
+    builder.Services
+        .AddEnrollmentsModule(sqlConn!)
+        .AddSchoolsModule(sqlConn!)
+        .AddStudentsModule(sqlConn!)
+        .AddLessonsModule(sqlConn!);
+}
+else
+{
+    static string DbPath(string module) =>
+        $"Data Source={Path.Combine(Path.GetTempPath(), $"driveease-{module}.db")}";
+    builder.Services
+        .AddEnrollmentsModule(DbPath("enrollments"))
+        .AddSchoolsModule(DbPath("schools"))
+        .AddStudentsModule(DbPath("students"))
+        .AddLessonsModule(DbPath("lessons"));
+}
+
+// ── Event bus ─────────────────────────────────────────────────────────────────
+// Azure: ServiceBus__FullyQualifiedNamespace is a Key Vault reference resolved by
+//        the App Service MI. AzureServiceBusEventBus uses DefaultAzureCredential —
+//        no SAS key anywhere.
+// Local: in-process dispatch via InMemoryEventBus.
+
+var sbNamespace = builder.Configuration["ServiceBus:FullyQualifiedNamespace"];
+
+// Guard against unresolved Key Vault references (KV reference not yet propagated).
+var sbResolved = !string.IsNullOrWhiteSpace(sbNamespace) &&
+                 !sbNamespace.StartsWith("@Microsoft.KeyVault", StringComparison.OrdinalIgnoreCase);
+
+if (sbResolved)
+    builder.Services.AddSingleton<IEventBus>(new AzureServiceBusEventBus(sbNamespace!));
+else
+    builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
+
+// ── MediatR ───────────────────────────────────────────────────────────────────
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(
@@ -36,20 +87,11 @@ builder.Services.AddMediatR(cfg =>
         typeof(DriveEase.Lessons.Application.Commands.BookLesson.BookLessonHandler).Assembly);
 });
 
-// Each module gets its own SQLite file — EnsureCreated only initialises a file once,
-// so sharing one file across contexts would leave later contexts with missing tables.
-static string DbPath(string module) => $"Data Source=/tmp/driveease-{module}.db";
-
-builder.Services
-    .AddEnrollmentsModule(DbPath("enrollments"))
-    .AddSchoolsModule(DbPath("schools"))
-    .AddStudentsModule(DbPath("students"))
-    .AddLessonsModule(DbPath("lessons"))
-    .AddNotificationsModule();
+builder.Services.AddNotificationsModule();
 
 var app = builder.Build();
 
-// Ensure SQLite schema exists on every cold start (tables are created if missing)
+// Ensure schema exists on cold start (EnsureCreated is idempotent)
 using (var scope = app.Services.CreateScope())
 {
     var sp = scope.ServiceProvider;
@@ -63,5 +105,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 app.Run();
