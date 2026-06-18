@@ -80,17 +80,31 @@ module keyVault 'modules/keyvault.bicep' = {
   }
 }
 
+// ── App Insights ──────────────────────────────────────────────────────────────
+// Workspace-based Application Insights — OTel SDK writes to this via the
+// APPLICATIONINSIGHTS_CONNECTION_STRING app setting.
+module appInsights 'modules/appinsights.bicep' = {
+  name: 'deploy-appinsights'
+  params: {
+    appInsightsName: '${prefix}-ai-${suffix}'
+    workspaceName:   '${prefix}-law-${suffix}'
+    location:         location
+    retentionDays:   environmentName == 'prod' ? 90 : 30
+  }
+}
+
 // ── API ───────────────────────────────────────────────────────────────────────
 module api 'modules/api.bicep' = {
   name: 'deploy-api'
   params: {
-    appName:         '${prefix}-api-${suffix}'
-    location:         location
-    planSku:         environmentName == 'prod' ? 'S1' : 'B1'
-    keyVaultName:    keyVault.outputs.kvName
-    environmentName:  environmentName
-    aadTenantId:     'bd95d6a2-b815-456f-872e-947582249315'
-    aadClientId:     'a6890318-c857-4b50-ae3f-eb3fbfd1cc81'
+    appName:                     '${prefix}-api-${suffix}'
+    location:                     location
+    planSku:                     environmentName == 'prod' ? 'S1' : 'B1'
+    keyVaultName:                keyVault.outputs.kvName
+    environmentName:              environmentName
+    aadTenantId:                 'bd95d6a2-b815-456f-872e-947582249315'
+    aadClientId:                 'a6890318-c857-4b50-ae3f-eb3fbfd1cc81'
+    appInsightsConnectionString: appInsights.outputs.connectionString
   }
 }
 
@@ -163,3 +177,5 @@ output apiUrl              string = api.outputs.appUrl
 output sqlServerFqdn       string = sql.outputs.serverFqdn
 output serviceBusNamespace string = serviceBus.outputs.namespaceName
 output keyVaultName        string = keyVault.outputs.kvName
+output appInsightsName     string = appInsights.outputs.appInsightsName
+output logAnalyticsWorkspace string = appInsights.outputs.workspaceName
