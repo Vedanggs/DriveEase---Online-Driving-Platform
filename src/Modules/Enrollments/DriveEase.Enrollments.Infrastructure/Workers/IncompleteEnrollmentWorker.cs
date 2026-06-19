@@ -1,6 +1,4 @@
 using DriveEase.Enrollments.Domain.Repositories;
-using DriveEase.Enrollments.Domain.Events;
-using DriveEase.Shared.Messaging;
 using DriveEase.Shared.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -24,22 +22,18 @@ public sealed class IncompleteEnrollmentWorker(
 
     private async Task ProcessStaleEnrollmentsAsync(CancellationToken cancellationToken)
     {
-        // Root span for this worker tick — appears as a top-level operation in App Insights.
         using var workerActivity = DriveEaseTelemetry.Source.StartActivity(
             "EnrollmentWorker.ProcessStale", ActivityKind.Internal);
 
         using var scope = scopeFactory.CreateScope();
         var repository = scope.ServiceProvider.GetRequiredService<IEnrollmentRepository>();
-        var eventBus   = scope.ServiceProvider.GetRequiredService<IEventBus>();
 
-        // Auto-cancel enrollments with failed payment after 72 hours
         var stale = await repository.GetPendingPaymentOlderThanAsync(TimeSpan.FromHours(72), cancellationToken);
 
         workerActivity?.SetTag("worker.stale_count", stale.Count);
 
         foreach (var enrollment in stale)
         {
-            // Child span per cancelled enrollment — stitches into the worker root span.
             using var cancelActivity = DriveEaseTelemetry.Source.StartActivity(
                 "EnrollmentWorker.CancelEnrollment", ActivityKind.Internal);
             cancelActivity?.SetTag("enrollment.id", enrollment.Id);
@@ -48,12 +42,7 @@ public sealed class IncompleteEnrollmentWorker(
             {
                 enrollment.Cancel("Auto-cancelled: payment not received within 72 hours.");
                 await repository.UpdateAsync(enrollment, cancellationToken);
-
-                var cancelledEvent = (EnrollmentCancelledEvent)enrollment.DomainEvents
-                    .First(e => e is EnrollmentCancelledEvent);
-                await eventBus.PublishAsync(cancelledEvent, cancellationToken);
-
-                enrollment.ClearDomainEvents();
+                // OutboxInterceptor captures EnrollmentCancelledEvent atomically during UpdateAsync
 
                 DriveEaseTelemetry.EnrollmentsAutoCancelled.Add(1,
                     new TagList { { "enrollment.id", enrollment.Id.ToString() } });

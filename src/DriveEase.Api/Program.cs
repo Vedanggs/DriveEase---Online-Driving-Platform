@@ -1,5 +1,7 @@
+using Asp.Versioning;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
 using DriveEase.Api.Messaging;
+using DriveEase.Api.Workers;
 using Microsoft.EntityFrameworkCore;
 using DriveEase.Enrollments.Infrastructure;
 using DriveEase.Enrollments.Infrastructure.Persistence;
@@ -12,39 +14,100 @@ using DriveEase.Shared.Messaging;
 using DriveEase.Shared.Telemetry;
 using DriveEase.Students.Infrastructure;
 using DriveEase.Students.Infrastructure.Persistence;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Identity.Web;
+using Microsoft.OpenApi.Models;
 using OpenTelemetry.Trace;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<HostOptions>(opts =>
     opts.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
 
+// Limit request body size globally — prevents memory exhaustion from oversized payloads
+builder.WebHost.ConfigureKestrel(k => k.Limits.MaxRequestBodySize = 1_048_576); // 1 MiB
+
 // ── Entra ID authentication ───────────────────────────────────────────────────
-// Protects all [Authorize] endpoints with Azure AD JWT bearer tokens.
-// TenantId and ClientId are non-secret config values — safe in app settings.
 builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
+
+// ── API versioning ────────────────────────────────────────────────────────────
+// Routes: api/v{version}/[controller]  e.g. /api/v1/enrollments
+// Response headers: api-supported-versions, api-deprecated-versions
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+})
+.AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+
+// ── Rate limiting ─────────────────────────────────────────────────────────────
+// Global fixed window: 60 requests per minute per client IP. HTTP 429 on excess.
+// GlobalLimiter is used (rather than [EnableRateLimiting] endpoint metadata) so
+// the limit applies before routing and auth, covering every path including Swagger.
+builder.Services.AddRateLimiter(options =>
+{
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anon",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                // QueueLimit = 0: reject immediately when permits exhausted (no silent queuing)
+                QueueLimit = 0,
+            }));
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+// ── Swagger with bearer auth scheme ──────────────────────────────────────────
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "DriveEase API", Version = "v1" });
+
+    // Swagger UI will prompt for a bearer token and send Authorization: Bearer <token>
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        Description = "Paste your Entra ID access token (without the 'Bearer ' prefix)",
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id   = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // ── Observability (OpenTelemetry → Azure App Insights) ────────────────────────
-// Connection string is injected by App Service from its app settings
-// (APPLICATIONINSIGHTS_CONNECTION_STRING), which maps to Key Vault in prod.
-// Local dev: pipeline active but no exporter — spans are recorded in-process.
 var appInsightsConnStr = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]
     ?? builder.Configuration["ApplicationInsights:ConnectionString"];
 
 var appInsightsResolved = !string.IsNullOrWhiteSpace(appInsightsConnStr)
     && !appInsightsConnStr.StartsWith("@Microsoft.KeyVault", StringComparison.OrdinalIgnoreCase);
 
-// WithTracing: add our custom source + SqlClient.
-// ASP.NET Core and HttpClient tracing are added by UseAzureMonitor (prod) or
-// explicitly below (local dev where UseAzureMonitor is not called).
-// WithMetrics: register our custom meter only — ASP.NET Core / HttpClient metrics
-// come from UseAzureMonitor when present.
 var otelBuilder = builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing
         .AddSource(DriveEaseTelemetry.ServiceName)
@@ -62,14 +125,8 @@ if (appInsightsResolved)
     otelBuilder.UseAzureMonitor(opts => opts.ConnectionString = appInsightsConnStr!);
 
 // ── Database ──────────────────────────────────────────────────────────────────
-// Azure: DefaultConnection is a Key Vault reference resolved by the App Service MI.
-//        The connection string uses "Authentication=Active Directory Managed Identity"
-//        — no password anywhere.
-// Local: fall back to per-module SQLite files (no Azure credentials needed).
-
 var sqlConn = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Guard against unresolved Key Vault references (KV reference not yet propagated).
 var sqlResolved = !string.IsNullOrWhiteSpace(sqlConn) &&
                   !sqlConn.StartsWith("@Microsoft.KeyVault", StringComparison.OrdinalIgnoreCase);
 
@@ -93,14 +150,8 @@ else
 }
 
 // ── Event bus ─────────────────────────────────────────────────────────────────
-// Azure: ServiceBus__FullyQualifiedNamespace is a Key Vault reference resolved by
-//        the App Service MI. AzureServiceBusEventBus uses DefaultAzureCredential —
-//        no SAS key anywhere.
-// Local: in-process dispatch via InMemoryEventBus.
-
 var sbNamespace = builder.Configuration["ServiceBus:FullyQualifiedNamespace"];
 
-// Guard against unresolved Key Vault references (KV reference not yet propagated).
 var sbResolved = !string.IsNullOrWhiteSpace(sbNamespace) &&
                  !sbNamespace.StartsWith("@Microsoft.KeyVault", StringComparison.OrdinalIgnoreCase);
 
@@ -123,14 +174,50 @@ builder.Services.AddMediatR(cfg =>
 });
 
 builder.Services.AddNotificationsModule();
+builder.Services.AddHostedService<OutboxRelayWorker>();
 
 var app = builder.Build();
 
-// Ensure schema exists on cold start.
-// SQLite: EnsureCreated is correct (creates DB + tables atomically).
-// SQL Server: EnsureCreated skips CreateTables when HasTables() returns true,
-//             which breaks on partial schema (some modules created, others not).
-//             Fix: execute idempotent IF-NOT-EXISTS SQL directly on the connection.
+// ── Security headers ──────────────────────────────────────────────────────────
+// Applied before any other middleware so every response carries the headers.
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    ctx.Response.Headers["X-Frame-Options"] = "DENY";
+    ctx.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    await next();
+});
+
+// Rate limiter placed here (before Swagger/auth) so the global limit covers every path
+app.UseRateLimiter();
+
+// ── JWT structural pre-check (Span<T>, zero allocation) ──────────────────────
+// Rejects Authorization: Bearer headers that are not structurally valid JWTs
+// (exactly 3 dot-separated segments) before the request reaches auth middleware.
+// Uses ReadOnlySpan<char> to avoid string allocations on every request.
+app.Use(async (ctx, next) =>
+{
+    var raw = ctx.Request.Headers.Authorization.ToString();
+    if (raw.Length > 7)
+    {
+        ReadOnlySpan<char> header = raw.AsSpan();
+        if (header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            ReadOnlySpan<char> token = header.Slice(7);
+            int dots = 0;
+            foreach (char c in token)
+                if (c == '.') dots++;
+            if (dots != 2)
+            {
+                ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+                return;
+            }
+        }
+    }
+    await next();
+});
+
+// ── Schema init on cold start ─────────────────────────────────────────────────
 try
 {
     using var scope = app.Services.CreateScope();
@@ -138,7 +225,6 @@ try
 
     if (sqlResolved)
     {
-        // SQL Server path — idempotent per-table creation handles partial state
         var ctx = sp.GetRequiredService<SchoolsDbContext>();
         var conn = ctx.Database.GetDbConnection();
         conn.Open();
@@ -221,13 +307,40 @@ try
                 CREATE INDEX IX_Lessons_StudentId_ScheduledAt ON lessons.Lessons (StudentId, ScheduledAt);
                 CREATE INDEX IX_Lessons_EnrollmentId ON lessons.Lessons (EnrollmentId);
             END
+
+            IF OBJECT_ID('enrollments.OutboxMessages','U') IS NULL
+            BEGIN
+                CREATE TABLE enrollments.OutboxMessages (
+                    Id          UNIQUEIDENTIFIER NOT NULL,
+                    EventType   NVARCHAR(500)    NOT NULL,
+                    Payload     NVARCHAR(MAX)    NOT NULL,
+                    CreatedAt   DATETIME2        NOT NULL,
+                    ProcessedAt DATETIME2        NULL,
+                    Error       NVARCHAR(MAX)    NULL,
+                    CONSTRAINT PK_EnrollmentOutboxMessages PRIMARY KEY (Id));
+                CREATE INDEX IX_EnrollmentOutbox_Unprocessed ON enrollments.OutboxMessages (ProcessedAt)
+                    WHERE ProcessedAt IS NULL;
+            END
+
+            IF OBJECT_ID('lessons.OutboxMessages','U') IS NULL
+            BEGIN
+                CREATE TABLE lessons.OutboxMessages (
+                    Id          UNIQUEIDENTIFIER NOT NULL,
+                    EventType   NVARCHAR(500)    NOT NULL,
+                    Payload     NVARCHAR(MAX)    NOT NULL,
+                    CreatedAt   DATETIME2        NOT NULL,
+                    ProcessedAt DATETIME2        NULL,
+                    Error       NVARCHAR(MAX)    NULL,
+                    CONSTRAINT PK_LessonOutboxMessages PRIMARY KEY (Id));
+                CREATE INDEX IX_LessonOutbox_Unprocessed ON lessons.OutboxMessages (ProcessedAt)
+                    WHERE ProcessedAt IS NULL;
+            END
             """;
         cmd.ExecuteNonQuery();
         conn.Close();
     }
     else
     {
-        // SQLite path — EnsureCreated is safe (creates DB + tables atomically)
         sp.GetRequiredService<EnrollmentsDbContext>().Database.EnsureCreated();
         sp.GetRequiredService<StudentsDbContext>().Database.EnsureCreated();
         sp.GetRequiredService<SchoolsDbContext>().Database.EnsureCreated();
@@ -241,7 +354,7 @@ catch (Exception ex)
 }
 
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "DriveEase API v1"));
 
 app.UseHttpsRedirection();
 app.UseAuthentication();

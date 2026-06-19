@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using DriveEase.Enrollments.Application.Commands.AssignInstructor;
 using DriveEase.Enrollments.Application.Commands.EnrollStudent;
@@ -10,7 +11,8 @@ namespace DriveEase.Api.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public sealed class EnrollmentsController(ISender sender) : ControllerBase
 {
     [HttpPost]

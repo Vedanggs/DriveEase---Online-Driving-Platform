@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using DriveEase.Lessons.Application.Commands.BookLesson;
 using DriveEase.Lessons.Application.Commands.CompleteLesson;
@@ -10,7 +11,8 @@ namespace DriveEase.Api.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public sealed class LessonsController(ISender sender) : ControllerBase
 {
     [HttpPost]

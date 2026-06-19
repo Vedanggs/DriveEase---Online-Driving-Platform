@@ -1,10 +1,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Module: sql.bicep
-// Provisions: Azure SQL Server + Database + firewall rule for Azure services.
+// Provisions: Azure SQL Server + Database.
 //
-// Day 25: admin credentials are used only to provision the server.
-//         The app connects via Managed Identity — no password in the
-//         connection string that reaches the app.
+// Day 25: admin credentials used only to provision the server.
+//         App connects via Managed Identity — no password in the connection string.
+//
+// Day 27 security pass: when subnetId is provided (prod), public network access
+//         is disabled and a private endpoint is created in the data subnet.
+//         The AllowAzureServices firewall rule is only present in dev (no VNet).
 // ─────────────────────────────────────────────────────────────────────────────
 
 @description('SQL Server resource name — must be globally unique')
@@ -38,6 +41,15 @@ param appServicePrincipalId string = ''
 @description('Display name for the AAD administrator (typically the App Service name)')
 param appServiceName string = ''
 
+@description('Subnet resource ID for the private endpoint. Empty = dev mode (public access retained).')
+param subnetId string = ''
+
+@description('VNet resource ID for the private DNS zone link. Required when subnetId is set.')
+param vnetId string = ''
+
+// Private endpoint enabled when a subnet is provided (prod)
+var enablePrivateEndpoint = !empty(subnetId)
+
 // ── SQL Server ────────────────────────────────────────────────────────────────
 resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
   name: serverName
@@ -46,7 +58,8 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
     administratorLogin:         adminLogin
     administratorLoginPassword: adminPassword
     minimalTlsVersion:          '1.2'
-    publicNetworkAccess:        'Enabled'
+    // Disable public access in prod; retain in dev where there is no VNet
+    publicNetworkAccess:        enablePrivateEndpoint ? 'Disabled' : 'Enabled'
   }
 }
 
@@ -67,8 +80,8 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   }
 }
 
-// Allow inbound connections from Azure-hosted services (e.g. App Service)
-resource allowAzureServices 'Microsoft.Sql/servers/firewallRules@2023-08-01-preview' = {
+// Dev only: allow inbound from Azure-hosted services when no private endpoint is used
+resource allowAzureServices 'Microsoft.Sql/servers/firewallRules@2023-08-01-preview' = if (!enablePrivateEndpoint) {
   parent: sqlServer
   name: 'AllowAzureServices'
   properties: {
@@ -77,8 +90,7 @@ resource allowAzureServices 'Microsoft.Sql/servers/firewallRules@2023-08-01-prev
   }
 }
 
-// Set the App Service MI as the SQL Server Azure AD administrator so it can
-// authenticate with Active Directory Managed Identity — no password required.
+// Set the App Service MI as the SQL Server Azure AD administrator
 resource sqlAadAdmin 'Microsoft.Sql/servers/administrators@2023-08-01-preview' = if (!empty(appServicePrincipalId)) {
   parent: sqlServer
   name: 'ActiveDirectory'
@@ -90,11 +102,59 @@ resource sqlAadAdmin 'Microsoft.Sql/servers/administrators@2023-08-01-preview' =
   }
 }
 
+// ── Private Endpoint (prod only) ──────────────────────────────────────────────
+
+resource sqlPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = if (enablePrivateEndpoint) {
+  name: '${serverName}-pe'
+  location: location
+  properties: {
+    subnet: {
+      id: subnetId
+    }
+    privateLinkServiceConnections: [
+      {
+        name: '${serverName}-plsc'
+        properties: {
+          privateLinkServiceId: sqlServer.id
+          groupIds: ['sqlServer']
+        }
+      }
+    ]
+  }
+}
+
+resource sqlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (enablePrivateEndpoint) {
+  name: 'privatelink.database.windows.net'
+  location: 'global'
+}
+
+resource sqlDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (enablePrivateEndpoint) {
+  parent: sqlPrivateDnsZone
+  name: '${serverName}-vnet-link'
+  location: 'global'
+  properties: {
+    virtualNetwork: { id: vnetId }
+    registrationEnabled: false
+  }
+}
+
+resource sqlDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-09-01' = if (enablePrivateEndpoint) {
+  parent: sqlPrivateEndpoint
+  name: 'sqlDnsZoneGroup'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'privatelink-database-windows-net'
+        properties: {
+          privateDnsZoneId: sqlPrivateDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
 // ── Outputs ───────────────────────────────────────────────────────────────────
 output serverFqdn string = sqlServer.properties.fullyQualifiedDomainName
 output serverId   string = sqlServer.id
 
-// MI-compatible connection string — no User/Password.
-// Authentication=Active Directory Managed Identity tells Microsoft.Data.SqlClient
-// to request an OAuth token for the App Service system-assigned identity.
 output miConnectionString string = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Database=${databaseName};Authentication=Active Directory Managed Identity;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'

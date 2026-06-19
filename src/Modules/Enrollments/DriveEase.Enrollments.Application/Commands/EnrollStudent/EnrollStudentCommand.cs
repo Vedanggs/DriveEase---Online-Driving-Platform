@@ -1,8 +1,9 @@
 using MediatR;
+using System.ComponentModel.DataAnnotations;
 
 namespace DriveEase.Enrollments.Application.Commands.EnrollStudent;
 
 public sealed record EnrollStudentCommand(
     Guid StudentId,
     Guid DrivingSchoolId,
-    decimal Fee) : IRequest<Guid>;
+    [property: Range(1.0, 100_000.0)] decimal Fee) : IRequest<Guid>;

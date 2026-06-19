@@ -1,6 +1,7 @@
 using DriveEase.Lessons.Domain.Repositories;
 using DriveEase.Lessons.Infrastructure.Persistence;
 using DriveEase.Lessons.Infrastructure.Workers;
+using DriveEase.Shared.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,12 +13,16 @@ public static class LessonsModule
         this IServiceCollection services,
         string connectionString)
     {
-        services.AddDbContext<LessonsDbContext>(opt =>
+        services.AddSingleton<OutboxInterceptor>();
+
+        services.AddDbContext<LessonsDbContext>((sp, opt) =>
         {
             if (connectionString.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase))
                 opt.UseSqlite(connectionString);
             else
                 opt.UseSqlServer(connectionString);
+
+            opt.AddInterceptors(sp.GetRequiredService<OutboxInterceptor>());
         });
 
         services.AddScoped<ILessonRepository, LessonRepository>();

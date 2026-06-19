@@ -2,6 +2,7 @@ using DriveEase.Enrollments.Application.Services;
 using DriveEase.Enrollments.Domain.Repositories;
 using DriveEase.Enrollments.Infrastructure.Persistence;
 using DriveEase.Enrollments.Infrastructure.Workers;
+using DriveEase.Shared.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,12 +14,16 @@ public static class EnrollmentsModule
         this IServiceCollection services,
         string connectionString)
     {
-        services.AddDbContext<EnrollmentsDbContext>(opt =>
+        services.AddSingleton<OutboxInterceptor>();
+
+        services.AddDbContext<EnrollmentsDbContext>((sp, opt) =>
         {
             if (connectionString.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase))
                 opt.UseSqlite(connectionString);
             else
                 opt.UseSqlServer(connectionString);
+
+            opt.AddInterceptors(sp.GetRequiredService<OutboxInterceptor>());
         });
 
         services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
