@@ -48,6 +48,62 @@
   }
 }
 
+.enrollment-notice {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #1d4ed8;
+  margin-bottom: 1.25rem;
+}
+
+.card-enrolled {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  position: relative;
+
+  &:hover {
+    border-color: #15803d;
+    box-shadow: 0 4px 16px rgba(22, 163, 74, 0.12);
+  }
+
+  .enrolled-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #16a34a;
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.02em;
+  }
+
+  .card-cta { color: #16a34a; }
+}
+
+.card-locked {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  opacity: 0.55;
+  cursor: not-allowed;
+
+  .card-icon  { font-size: 2rem; margin-bottom: 0.4rem; }
+  h3          { font-size: 1.05rem; font-weight: 700; color: #111827; }
+  .card-address, .card-email { font-size: 0.85rem; color: #6b7280; }
+
+  .locked-label {
+    margin-top: auto;
+    padding-top: 0.75rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #9ca3af;
+  }
+}
+
 .skeleton {
   height: 180px;
   background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
