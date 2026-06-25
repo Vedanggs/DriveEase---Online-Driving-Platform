@@ -1,0 +1,171 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.0",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.44.1.10279",
+      "templateHash": "4998597649242188803"
+    }
+  },
+  "parameters": {
+    "namespaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "Service Bus namespace name — must be globally unique"
+      }
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region"
+      }
+    },
+    "skuName": {
+      "type": "string",
+      "defaultValue": "Standard",
+      "allowedValues": [
+        "Basic",
+        "Standard",
+        "Premium"
+      ],
+      "metadata": {
+        "description": "Service Bus SKU — Basic (queues only) | Standard | Premium"
+      }
+    }
+  },
+  "resources": {
+    "namespace": {
+      "type": "Microsoft.ServiceBus/namespaces",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[parameters('namespaceName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('skuName')]",
+        "tier": "[parameters('skuName')]"
+      },
+      "properties": {
+        "minimumTlsVersion": "1.2",
+        "publicNetworkAccess": "Enabled",
+        "disableLocalAuth": false
+      }
+    },
+    "enrollmentEventsTopic": {
+      "condition": "[not(equals(parameters('skuName'), 'Basic'))]",
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', parameters('namespaceName'), 'enrollment-events')]",
+      "properties": {
+        "defaultMessageTimeToLive": "P7D",
+        "enableBatchedOperations": true,
+        "requiresDuplicateDetection": false
+      },
+      "dependsOn": [
+        "namespace"
+      ]
+    },
+    "lessonEventsTopic": {
+      "condition": "[not(equals(parameters('skuName'), 'Basic'))]",
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', parameters('namespaceName'), 'lesson-events')]",
+      "properties": {
+        "defaultMessageTimeToLive": "P7D",
+        "enableBatchedOperations": true,
+        "requiresDuplicateDetection": false
+      },
+      "dependsOn": [
+        "namespace"
+      ]
+    },
+    "enrollmentConfirmedSub": {
+      "condition": "[not(equals(parameters('skuName'), 'Basic'))]",
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('namespaceName'), 'enrollment-events', 'enrollment-confirmed')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "maxDeliveryCount": 5
+      },
+      "dependsOn": [
+        "enrollmentEventsTopic"
+      ]
+    },
+    "enrollmentAlertSub": {
+      "condition": "[not(equals(parameters('skuName'), 'Basic'))]",
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('namespaceName'), 'enrollment-events', 'enrollment-alert')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "maxDeliveryCount": 5
+      },
+      "dependsOn": [
+        "enrollmentEventsTopic"
+      ]
+    },
+    "lessonReminderSub": {
+      "condition": "[not(equals(parameters('skuName'), 'Basic'))]",
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('namespaceName'), 'lesson-events', 'lesson-reminder')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "maxDeliveryCount": 5
+      },
+      "dependsOn": [
+        "lessonEventsTopic"
+      ]
+    },
+    "lessonCompletedSub": {
+      "condition": "[not(equals(parameters('skuName'), 'Basic'))]",
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('namespaceName'), 'lesson-events', 'lesson-completed')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "maxDeliveryCount": 5
+      },
+      "dependsOn": [
+        "lessonEventsTopic"
+      ]
+    },
+    "appAuthRule": {
+      "type": "Microsoft.ServiceBus/namespaces/AuthorizationRules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', parameters('namespaceName'), 'DriveEaseApp')]",
+      "properties": {
+        "rights": [
+          "Send",
+          "Listen"
+        ]
+      },
+      "dependsOn": [
+        "namespace"
+      ]
+    }
+  },
+  "outputs": {
+    "primaryConnectionString": {
+      "type": "securestring",
+      "value": "[listKeys('appAuthRule', '2022-10-01-preview').primaryConnectionString]"
+    },
+    "namespaceName": {
+      "type": "string",
+      "value": "[parameters('namespaceName')]"
+    },
+    "namespaceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.ServiceBus/namespaces', parameters('namespaceName'))]"
+    }
+  }
+}
