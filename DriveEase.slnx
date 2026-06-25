@@ -30,6 +30,7 @@
     <Project Path="src/Modules/Students/DriveEase.Students.Infrastructure/DriveEase.Students.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DriveEase.Api.Tests/DriveEase.Api.Tests.csproj" />
     <Project Path="tests/DriveEase.Enrollments.Application.Tests/DriveEase.Enrollments.Application.Tests.csproj" />
     <Project Path="tests/DriveEase.Enrollments.Domain.Tests/DriveEase.Enrollments.Domain.Tests.csproj" />
   </Folder>

@@ -29,6 +29,9 @@ param aadTenantId string
 @description('Entra ID app registration client ID — not a secret, safe in app settings')
 param aadClientId string
 
+@description('Application Insights connection string — injected from the appinsights module output')
+param appInsightsConnectionString string
+
 // ── App Service Plan (Linux) ──────────────────────────────────────────────────
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: '${appName}-plan'
@@ -90,6 +93,12 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
         {
           name:  'AzureAd__Audience'
           value: 'api://${aadClientId}'
+        }
+        // OTel SDK reads APPLICATIONINSIGHTS_CONNECTION_STRING automatically.
+        // This is the standard env-var name; no code change needed when rotating.
+        {
+          name:  'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsightsConnectionString
         }
       ]
       connectionStrings: [

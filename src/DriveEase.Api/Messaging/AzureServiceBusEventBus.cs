@@ -2,6 +2,8 @@ using Azure.Identity;
 using Azure.Messaging.ServiceBus;
 using DriveEase.Shared.Domain;
 using DriveEase.Shared.Messaging;
+using DriveEase.Shared.Telemetry;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace DriveEase.Api.Messaging;
@@ -31,13 +33,29 @@ public sealed class AzureServiceBusEventBus : IEventBus, IAsyncDisposable
             _senders[topic] = sender;
         }
 
+        // Producer span — represents the "send" side of the message.
+        // ActivityKind.Producer signals to App Insights this is an async dependency.
+        using var activity = DriveEaseTelemetry.Source.StartActivity(
+            $"ServiceBus.Send {topic}", ActivityKind.Producer);
+
+        activity?.SetTag("messaging.system", "servicebus");
+        activity?.SetTag("messaging.destination", topic);
+        activity?.SetTag("messaging.destination_kind", "topic");
+        activity?.SetTag("messaging.message_type", typeof(T).Name);
+
         var message = new ServiceBusMessage(JsonSerializer.SerializeToUtf8Bytes(integrationEvent))
         {
             Subject     = typeof(T).Name,
             ContentType = "application/json"
         };
 
+        // Inject W3C TraceContext (traceparent / tracestate) into message properties
+        // so the consumer can restore the distributed trace when it picks up the message.
+        TraceContextPropagator.Inject(message.ApplicationProperties);
+
         await sender.SendMessageAsync(message, cancellationToken);
+
+        activity?.SetStatus(ActivityStatusCode.Ok);
     }
 
     public async ValueTask DisposeAsync()
