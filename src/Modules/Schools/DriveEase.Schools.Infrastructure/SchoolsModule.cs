@@ -1,3 +1,4 @@
+using DriveEase.Schools.Application.Queries.GetAllSchools;
 using DriveEase.Schools.Domain.Repositories;
 using DriveEase.Schools.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ public static class SchoolsModule
 
         services.AddScoped<IDrivingSchoolRepository, SchoolRepository>();
         services.AddScoped<IInstructorRepository, InstructorRepository>();
+        services.AddScoped<ISchoolQueryService, SchoolQueryService>();
 
         return services;
     }

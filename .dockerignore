@@ -1,0 +1,30 @@
+# Version control
+.git
+.github
+.gitignore
+
+# IDE / tooling
+.claude
+.vs
+.vscode
+*.user
+
+# Test projects (not needed in the production image)
+tests/
+
+# Frontend source (served separately)
+frontend/
+
+# Infrastructure / deployment config
+infra/
+azure.yaml
+
+# Docs
+ADR/
+Screenshots/
+README.md
+SOLUTION.md
+
+# Build outputs (Docker rebuilds inside the container)
+**/bin/
+**/obj/

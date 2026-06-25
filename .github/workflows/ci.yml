@@ -31,10 +31,23 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
-      # 5. Run domain tests
-      - name: Run Enrollment Domain Tests
-        run: dotnet test tests/DriveEase.Enrollments.Domain.Tests/ --no-build --configuration Release --verbosity normal
+      # 5. Run all unit tests (domain + application + API telemetry — no Docker needed)
+      - name: Run Unit Tests
+        run: |
+          dotnet test tests/DriveEase.Enrollments.Domain.Tests/ --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage/unit
+          dotnet test tests/DriveEase.Enrollments.Application.Tests/ --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage/unit
+          dotnet test tests/DriveEase.Api.Tests/ --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage/unit
 
-      # 6. Run application tests
-      - name: Run Enrollment Application Tests
-        run: dotnet test tests/DriveEase.Enrollments.Application.Tests/ --no-build --configuration Release --verbosity normal
+      # 6. Run integration tests (Testcontainers spins up SQL Server via Docker —
+      #    ubuntu-latest runners have Docker pre-installed)
+      - name: Run Integration Tests
+        run: dotnet test tests/DriveEase.Api.IntegrationTests/ --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage/integration
+
+      # 7. Upload coverage reports as a build artifact
+      - name: Upload Coverage Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.run_number }}
+          path: ./coverage
+          retention-days: 14

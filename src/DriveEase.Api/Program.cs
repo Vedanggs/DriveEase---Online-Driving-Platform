@@ -319,9 +319,15 @@ app.Use(async (ctx, next) =>
     var sp = scope.ServiceProvider;
     var startupLogger = sp.GetRequiredService<ILogger<Program>>();
 
+    var useEnsureCreated = app.Configuration.GetValue<bool>("UseEnsureCreated");
     async Task MigrateAsync<TContext>(string name) where TContext : DbContext
     {
-        try   { await sp.GetRequiredService<TContext>().Database.MigrateAsync(); }
+        try
+        {
+            var ctx = sp.GetRequiredService<TContext>();
+            if (useEnsureCreated) await ctx.Database.EnsureCreatedAsync();
+            else                  await ctx.Database.MigrateAsync();
+        }
         catch (Exception ex) { startupLogger.LogError(ex, "Migration failed for {Context}", name); }
     }
 

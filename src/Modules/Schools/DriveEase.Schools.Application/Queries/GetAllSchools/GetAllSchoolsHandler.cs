@@ -1,11 +1,10 @@
-using DriveEase.Schools.Domain.Repositories;
 using MediatR;
 using Microsoft.Extensions.Caching.Hybrid;
 
 namespace DriveEase.Schools.Application.Queries.GetAllSchools;
 
 public sealed class GetAllSchoolsHandler(
-    IDrivingSchoolRepository repository,
+    ISchoolQueryService queryService,
     HybridCache cache)
     : IRequestHandler<GetAllSchoolsQuery, IReadOnlyList<SchoolSummaryDto>>
 {
@@ -16,13 +15,8 @@ public sealed class GetAllSchoolsHandler(
         GetAllSchoolsQuery request, CancellationToken cancellationToken) =>
         await cache.GetOrCreateAsync(
             CacheKey,
-            async ct =>
-            {
-                var schools = await repository.GetAllActiveAsync(ct);
-                return (IReadOnlyList<SchoolSummaryDto>)schools
-                    .Select(s => new SchoolSummaryDto(s.Id, s.Name, s.Address, s.ContactEmail))
-                    .ToList();
-            },
+            // ISchoolQueryService projects directly to DTO — no domain entity materialization.
+            async ct => await queryService.GetAllActiveSummariesAsync(ct),
             new HybridCacheEntryOptions
             {
                 Expiration = TimeSpan.FromMinutes(5),

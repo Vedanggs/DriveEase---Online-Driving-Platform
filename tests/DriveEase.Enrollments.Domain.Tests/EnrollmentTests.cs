@@ -104,4 +104,55 @@ public sealed class EnrollmentTests
         var act = () => enrollment.Cancel("test");
         act.Should().Throw<InvalidOperationException>();
     }
+
+    [Fact]
+    public void Cancel_WhenPending_RaisesEventAndSetsTimestamp()
+    {
+        var enrollment = Enrollment.Create(StudentId, SchoolId, 500m);
+
+        enrollment.Cancel("changed my mind");
+
+        enrollment.Status.Should().Be(EnrollmentStatus.Cancelled);
+        enrollment.CancelledAt.Should().NotBeNull();
+        enrollment.DomainEvents.Should().ContainSingle(e => e is EnrollmentCancelledEvent);
+    }
+
+    [Fact]
+    public void Cancel_AlreadyCancelled_Throws()
+    {
+        var enrollment = Enrollment.Create(StudentId, SchoolId, 500m);
+        enrollment.Cancel("first cancel");
+        enrollment.ClearDomainEvents();
+
+        var act = () => enrollment.Cancel("second cancel");
+        act.Should().Throw<InvalidOperationException>("double-cancel must be rejected");
+    }
+
+    [Fact]
+    public void Complete_WhenCancelled_Throws()
+    {
+        var enrollment = Enrollment.Create(StudentId, SchoolId, 500m);
+        enrollment.Cancel("gone");
+
+        var act = () => enrollment.Complete();
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void FailPayment_WhenAlreadyFailed_Throws()
+    {
+        var enrollment = Enrollment.Create(StudentId, SchoolId, 500m);
+        enrollment.FailPayment("Card declined");
+        enrollment.ClearDomainEvents();
+
+        var act = () => enrollment.FailPayment("Card declined again");
+        act.Should().Throw<InvalidOperationException>("cannot fail payment twice");
+    }
+
+    [Fact]
+    public void Create_WithNegativeFee_Throws()
+    {
+        var act = () => Enrollment.Create(StudentId, SchoolId, -100m);
+        act.Should().Throw<InvalidOperationException>();
+    }
 }
