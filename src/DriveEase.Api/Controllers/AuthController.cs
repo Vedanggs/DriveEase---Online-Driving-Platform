@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using DriveEase.Students.Application.Commands.LoginStudent;
 using DriveEase.Students.Application.Commands.RegisterStudent;
 using MediatR;
@@ -6,7 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace DriveEase.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public sealed class AuthController(ISender sender) : ControllerBase
 {
     [HttpPost("register")]

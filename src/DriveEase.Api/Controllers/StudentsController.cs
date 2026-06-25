@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using DriveEase.Students.Application.Commands.RegisterStudent;
 using DriveEase.Students.Application.Queries.GetStudent;
@@ -8,7 +9,8 @@ namespace DriveEase.Api.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public sealed class StudentsController(ISender sender) : ControllerBase
 {
     [HttpPost]

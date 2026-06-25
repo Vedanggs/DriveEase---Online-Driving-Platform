@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using DriveEase.Schools.Application.Commands.RegisterSchool;
 using DriveEase.Schools.Application.Queries.GetAllSchools;
@@ -9,7 +10,8 @@ namespace DriveEase.Api.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public sealed class SchoolsController(ISender sender) : ControllerBase
 {
     [HttpGet]

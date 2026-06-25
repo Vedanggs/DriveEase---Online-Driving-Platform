@@ -1,4 +1,5 @@
 using DriveEase.Enrollments.Domain.Aggregates;
+using DriveEase.Shared.Outbox;
 using Microsoft.EntityFrameworkCore;
 
 namespace DriveEase.Enrollments.Infrastructure.Persistence;
@@ -6,6 +7,7 @@ namespace DriveEase.Enrollments.Infrastructure.Persistence;
 public sealed class EnrollmentsDbContext(DbContextOptions<EnrollmentsDbContext> options) : DbContext(options)
 {
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +30,15 @@ public sealed class EnrollmentsDbContext(DbContextOptions<EnrollmentsDbContext> 
 
             e.HasIndex(x => x.StudentId);
             e.HasIndex(x => new { x.StudentId, x.Status });
+        });
+
+        modelBuilder.Entity<OutboxMessage>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.EventType).IsRequired().HasMaxLength(500);
+            e.Property(x => x.Payload).IsRequired();
+            e.Property(x => x.CreatedAt).IsRequired();
+            e.HasIndex(x => x.ProcessedAt);
         });
     }
 }

@@ -17,6 +17,10 @@ targetScope = 'resourceGroup'
 //   App Service MI ──RBAC──▶ Azure Service Bus Data Owner
 //   App Service MI ──AAD ──▶ SQL Server AAD administrator
 //   App Settings   ──────── @Microsoft.KeyVault() references only (zero plaintext secrets)
+//
+// Day 27 network chain (prod only):
+//   App Service (app-subnet) ──Private Endpoint──▶ Azure SQL Server (data-subnet)
+//   App Service (app-subnet) ──Private Endpoint──▶ Azure Service Bus Premium (data-subnet)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @description('Environment name — drives SKU selection and resource naming')
@@ -40,6 +44,21 @@ var prefix  = 'driveease-${environmentName}'
 // Key Vault name must be ≤24 chars — truncate to fit
 var kvName = take('${prefix}-kv-${suffix}', 24)
 
+// In prod the data tier is network-isolated behind private endpoints.
+// dev uses public access so developers can connect without VNet tooling.
+var isProd = environmentName == 'prod'
+
+// ── Network (VNet + subnets) ──────────────────────────────────────────────────
+// Always provisioned — dev uses the VNet for App Service integration readiness;
+// private endpoints are only wired in prod via the subnetId params below.
+module network 'modules/network.bicep' = {
+  name: 'deploy-network'
+  params: {
+    vnetName: '${prefix}-vnet-${suffix}'
+    location: location
+  }
+}
+
 // ── SQL ───────────────────────────────────────────────────────────────────────
 module sql 'modules/sql.bicep' = {
   name: 'deploy-sql'
@@ -49,11 +68,12 @@ module sql 'modules/sql.bicep' = {
     location:      location
     adminLogin:    sqlAdminLogin
     adminPassword: sqlAdminPassword
-    skuName:      environmentName == 'prod' ? 'S2'       : 'Basic'
-    skuTier:      environmentName == 'prod' ? 'Standard' : 'Basic'
-    skuCapacity:  environmentName == 'prod' ? 50         : 5
-    // AAD admin is set via the existing SQL server resource below, after
-    // the App Service MI principal ID is available from the api module output.
+    skuName:      isProd ? 'S2'       : 'Basic'
+    skuTier:      isProd ? 'Standard' : 'Basic'
+    skuCapacity:  isProd ? 50         : 5
+    // Private endpoint: prod only — disables public access and creates endpoint in data-subnet
+    subnetId: isProd ? network.outputs.dataSubnetId : ''
+    vnetId:   isProd ? network.outputs.vnetId       : ''
   }
 }
 
@@ -63,13 +83,14 @@ module serviceBus 'modules/servicebus.bicep' = {
   params: {
     namespaceName: '${prefix}-sb-${suffix}'
     location:       location
-    skuName:       'Standard'
+    // Premium SKU required for private endpoints; Standard used in dev (cheaper)
+    skuName:  isProd ? 'Premium'  : 'Standard'
+    subnetId: isProd ? network.outputs.dataSubnetId : ''
+    vnetId:   isProd ? network.outputs.vnetId       : ''
   }
 }
 
 // ── Key Vault ─────────────────────────────────────────────────────────────────
-// Stores the MI-based SQL connection string and Service Bus FQDN as secrets.
-// App Settings reference these via @Microsoft.KeyVault() — no plaintext.
 module keyVault 'modules/keyvault.bicep' = {
   name: 'deploy-keyvault'
   params: {
@@ -81,15 +102,13 @@ module keyVault 'modules/keyvault.bicep' = {
 }
 
 // ── App Insights ──────────────────────────────────────────────────────────────
-// Workspace-based Application Insights — OTel SDK writes to this via the
-// APPLICATIONINSIGHTS_CONNECTION_STRING app setting.
 module appInsights 'modules/appinsights.bicep' = {
   name: 'deploy-appinsights'
   params: {
     appInsightsName: '${prefix}-ai-${suffix}'
     workspaceName:   '${prefix}-law-${suffix}'
     location:         location
-    retentionDays:   environmentName == 'prod' ? 90 : 30
+    retentionDays:   isProd ? 90 : 30
   }
 }
 
@@ -99,7 +118,7 @@ module api 'modules/api.bicep' = {
   params: {
     appName:                     '${prefix}-api-${suffix}'
     location:                     location
-    planSku:                     environmentName == 'prod' ? 'S1' : 'B1'
+    planSku:                     isProd ? 'S1' : 'B1'
     keyVaultName:                keyVault.outputs.kvName
     environmentName:              environmentName
     aadTenantId:                 'bd95d6a2-b815-456f-872e-947582249315'
@@ -109,22 +128,13 @@ module api 'modules/api.bicep' = {
 }
 
 // ── Identity wiring ───────────────────────────────────────────────────────────
-// All three role assignments happen after the App Service MI principal ID is
-// available from api.outputs.principalId.
-
-// Built-in role definition IDs
 var kvSecretsUserRoleId   = '4633458b-17de-408a-b874-0445c86b69e6' // Key Vault Secrets User
 var sbDataOwnerRoleId     = '090c5cfd-751d-490a-894a-3ce6f1109419' // Azure Service Bus Data Owner
 
-// All existing resource references use vars known at deployment start — not module outputs.
-// This satisfies BCP120 (scope/name must be calculable before deployment begins).
-
 resource kvRef 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: kvName  // kvName is a var derived from prefix+suffix — known at start
+  name: kvName
 }
 
-// App Service MI → Key Vault Secrets User
-// Required for the @Microsoft.KeyVault() app setting references to resolve.
 resource kvRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: kvRef
   name: guid(kvName, '${prefix}-api-${suffix}', kvSecretsUserRoleId)
@@ -139,8 +149,6 @@ resource sbRef 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' existing = {
   name: '${prefix}-sb-${suffix}'
 }
 
-// App Service MI → Azure Service Bus Data Owner
-// Required for sending/receiving messages with DefaultAzureCredential.
 resource sbRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: sbRef
   name: guid('${prefix}-sb-${suffix}', '${prefix}-api-${suffix}', sbDataOwnerRoleId)
@@ -155,10 +163,6 @@ resource sqlServerRef 'Microsoft.Sql/servers@2023-08-01-preview' existing = {
   name: '${prefix}-sql-${suffix}'
 }
 
-// App Service MI → SQL Server AAD administrator
-// Required for Authentication=Active Directory Managed Identity in the connection string.
-// dependsOn is needed because sqlServerRef is an existing ref — Bicep can't infer the
-// implicit dependency on the sql module without it.
 #disable-next-line no-unnecessary-dependson
 resource sqlAadAdmin 'Microsoft.Sql/servers/administrators@2023-08-01-preview' = {
   parent: sqlServerRef
@@ -179,3 +183,4 @@ output serviceBusNamespace string = serviceBus.outputs.namespaceName
 output keyVaultName        string = keyVault.outputs.kvName
 output appInsightsName     string = appInsights.outputs.appInsightsName
 output logAnalyticsWorkspace string = appInsights.outputs.workspaceName
+output vnetName            string = network.outputs.vnetId
