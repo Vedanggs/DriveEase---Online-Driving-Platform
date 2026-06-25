@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using DriveEase.Lessons.Application.Commands.BookLesson;
 using DriveEase.Lessons.Application.Commands.CompleteLesson;
+using DriveEase.Lessons.Application.Queries.GetInstructorLessons;
 using DriveEase.Lessons.Application.Queries.GetLesson;
 using DriveEase.Lessons.Application.Queries.GetStudentLessons;
 using MediatR;
@@ -36,6 +37,15 @@ public sealed class LessonsController(ISender sender) : ControllerBase
         return Ok(lessons);
     }
 
+    [AllowAnonymous]
+    [HttpGet("instructor/{instructorId:guid}")]
+    public async Task<IActionResult> GetByInstructor(Guid instructorId, CancellationToken cancellationToken)
+    {
+        var lessons = await sender.Send(new GetInstructorLessonsQuery(instructorId), cancellationToken);
+        return Ok(lessons);
+    }
+
+    [AllowAnonymous]
     [HttpPost("{id:guid}/complete")]
     public async Task<IActionResult> Complete(Guid id, [FromBody] CompleteLessonRequest? request, CancellationToken cancellationToken)
     {

@@ -34,17 +34,20 @@
     </div>
   } @else {
     <div class="lessons-list">
-      @for (lesson of lessons(); track lesson.id) {
+      @for (lesson of lessons(); track lesson.id; let i = $index) {
         <div class="lesson-card">
           <div class="lesson-date">
             <span class="date-day">{{ lesson.scheduledAt | date:'d' }}</span>
             <span class="date-month">{{ lesson.scheduledAt | date:'MMM' }}</span>
           </div>
           <div class="lesson-info">
+            <div class="lesson-number-label">{{ ordinal(lessons().length - i) }} Driving Lesson</div>
             <div class="lesson-time">{{ lesson.scheduledAt | date:'h:mm a' }}</div>
             <div class="lesson-duration">{{ formatDuration(lesson.duration) }}</div>
             @if (lesson.notes) {
-              <div class="lesson-notes">{{ lesson.notes }}</div>
+              <div class="lesson-notes">
+                <span class="feedback-label">Instructor feedback:</span> {{ lesson.notes }}
+              </div>
             }
           </div>
           <span class="lesson-status" [class]="statusClass(lesson.status)">

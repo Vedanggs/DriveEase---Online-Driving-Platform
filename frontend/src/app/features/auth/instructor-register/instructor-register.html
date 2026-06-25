@@ -58,7 +58,7 @@
           <label for="schoolId">Driving School</label>
           <select id="schoolId" formControlName="schoolId">
             <option value="" disabled>Select your school</option>
-            @for (school of schools; track school.id) {
+            @for (school of schools(); track school.id) {
               <option [value]="school.id">{{ school.name }}</option>
             }
           </select>
@@ -67,12 +67,36 @@
           }
         </div>
 
-        <div class="field" [class.has-error]="form.controls.password.invalid && form.controls.password.touched">
+        <div class="field" [class.has-error]="form.controls.password.touched && !!form.controls.password.errors?.['required']">
           <label for="password">Password</label>
-          <input id="password" type="password" formControlName="password"
-            autocomplete="new-password" placeholder="Min. 8 characters" />
-          @if (form.controls.password.invalid && form.controls.password.touched) {
-            <span class="field-error" role="alert">Min. 8 characters</span>
+          <div class="pw-row">
+            <input id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              autocomplete="new-password"
+              placeholder="Min. 8 characters"
+              [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched" />
+            <button type="button" class="pw-toggle"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              (click)="showPassword.set(!showPassword())">
+              {{ showPassword() ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+          @if (form.controls.password.touched && form.controls.password.errors?.['required']) {
+            <span class="field-error" role="alert">Password is required</span>
+          }
+          @if (form.controls.password.dirty && form.controls.password.errors?.['strongPassword']) {
+            <ul class="password-rules">
+              @if (form.controls.password.errors?.['strongPassword']?.includes('8 characters')) {
+                <li>Minimum 8 characters</li>
+              }
+              @if (form.controls.password.errors?.['strongPassword']?.includes('2 numbers')) {
+                <li>At least 2 numbers</li>
+              }
+              @if (form.controls.password.errors?.['strongPassword']?.includes('1 special character')) {
+                <li>At least 1 special character</li>
+              }
+            </ul>
           }
         </div>
 

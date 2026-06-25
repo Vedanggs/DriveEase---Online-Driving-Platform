@@ -1,8 +1,10 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
+using DriveEase.Schools.Application.Commands.RegisterInstructor;
 using DriveEase.Schools.Application.Commands.RegisterSchool;
 using DriveEase.Schools.Application.Queries.GetAllSchools;
 using DriveEase.Schools.Application.Queries.GetSchool;
+using DriveEase.Schools.Application.Queries.GetSchoolInstructors;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,6 +16,7 @@ namespace DriveEase.Api.Controllers;
 [Route("api/v{version:apiVersion}/[controller]")]
 public sealed class SchoolsController(ISender sender) : ControllerBase
 {
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
@@ -34,4 +37,25 @@ public sealed class SchoolsController(ISender sender) : ControllerBase
         var dto = await sender.Send(new GetSchoolQuery(id), cancellationToken);
         return dto is null ? NotFound() : Ok(dto);
     }
+
+    [AllowAnonymous]
+    [HttpGet("{schoolId:guid}/instructors")]
+    public async Task<IActionResult> GetInstructors(Guid schoolId, CancellationToken cancellationToken)
+    {
+        var instructors = await sender.Send(new GetSchoolInstructorsQuery(schoolId), cancellationToken);
+        return Ok(instructors);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("{schoolId:guid}/instructors")]
+    public async Task<IActionResult> RegisterInstructor(
+        Guid schoolId, [FromBody] RegisterInstructorRequest request, CancellationToken cancellationToken)
+    {
+        var id = await sender.Send(
+            new RegisterInstructorCommand(schoolId, request.FullName, request.LicenseNumber),
+            cancellationToken);
+        return Ok(new { id });
+    }
 }
+
+public sealed record RegisterInstructorRequest(string FullName, string LicenseNumber);

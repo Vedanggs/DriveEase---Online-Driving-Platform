@@ -18,11 +18,11 @@
   <main class="main">
     <div class="page-header">
       <div>
-        <h1>Good morning, {{ instructorName() }}.</h1>
+        <h1>{{ greeting() }}, {{ instructorName() }}.</h1>
         <p class="page-sub">Here's what's waiting for you today.</p>
       </div>
-      @if (unreadCount > 0) {
-        <div class="unread-badge">{{ unreadCount }} new</div>
+      @if (unreadCount() > 0) {
+        <div class="unread-badge">{{ unreadCount() }} new</div>
       }
     </div>
 
@@ -38,7 +38,7 @@
       } @else {
         <div class="notif-list">
           @for (n of notifications(); track n.id) {
-            <div class="notif-card" [class.unread]="!n.read" (click)="markRead(n.id)">
+            <div class="notif-card" [class.unread]="!n.isRead" (click)="markRead(n.id)">
               <div class="notif-icon">
                 {{ n.type === 'enrollment' ? '🎓' : '📅' }}
               </div>
@@ -46,9 +46,9 @@
                 <p class="notif-text">
                   <strong>{{ n.studentName }}</strong> {{ n.detail }}
                 </p>
-                <span class="notif-time">{{ n.time }}</span>
+                <span class="notif-time">{{ n.createdAt | date:'MMM d · h:mm a' }}</span>
               </div>
-              @if (!n.read) {
+              @if (!n.isRead) {
                 <span class="unread-dot"></span>
               }
             </div>
@@ -60,19 +60,79 @@
     <!-- Upcoming lessons -->
     <section class="section">
       <h2 class="section-title">Upcoming Lessons</h2>
-      <div class="lesson-card">
-        <div class="lesson-meta">
-          <span class="lesson-date">Tomorrow · 9:00 AM</span>
-          <span class="lesson-duration">60 min</span>
+
+      @if (upcomingLessons().length === 0) {
+        <div class="empty">
+          <span class="empty-icon">📋</span>
+          <p>No upcoming lessons scheduled.</p>
         </div>
-        <p class="lesson-student">Vedang Shinde</p>
-        <p class="lesson-note">First lesson — basic controls & road awareness</p>
-        <div class="lesson-actions">
-          <button class="btn-complete">Mark Complete</button>
-          <button class="btn-feedback">Give Feedback</button>
+      } @else {
+        <div class="lesson-list">
+          @for (lesson of upcomingLessons(); track lesson.id) {
+            <div class="lesson-card">
+              <div class="lesson-meta">
+                <span class="lesson-date">{{ formatScheduledAt(lesson.scheduledAt) }}</span>
+                <span class="lesson-duration">{{ formatDuration(lesson.duration) }}</span>
+              </div>
+              <p class="lesson-student">{{ lesson.studentName || 'Student' }}</p>
+
+              @if (feedbackLessonId() === lesson.id) {
+                <div class="feedback-form">
+                  <textarea
+                    class="feedback-input"
+                    [(ngModel)]="feedbackText"
+                    placeholder="Write your lesson notes and feedback here..."
+                    rows="3">
+                  </textarea>
+                  <div class="feedback-actions">
+                    <button
+                      class="btn-submit-feedback"
+                      (click)="submitFeedback(lesson)"
+                      [disabled]="submitting() || !feedbackText.trim()">
+                      {{ submitting() ? 'Saving...' : 'Submit & Mark Complete' }}
+                    </button>
+                    <button class="btn-cancel" (click)="cancelFeedback()">Cancel</button>
+                  </div>
+                </div>
+              } @else {
+                <div class="lesson-actions">
+                  <button
+                    class="btn-complete"
+                    (click)="markComplete(lesson)"
+                    [disabled]="completingId() === lesson.id">
+                    {{ completingId() === lesson.id ? 'Marking...' : 'Mark Complete' }}
+                  </button>
+                  <button class="btn-feedback" (click)="openFeedback(lesson.id)">Give Feedback</button>
+                </div>
+              }
+            </div>
+          }
         </div>
-      </div>
+      }
     </section>
+
+    <!-- Completed lessons -->
+    @if (completedLessons().length > 0) {
+      <section class="section">
+        <h2 class="section-title">Completed Lessons</h2>
+        <div class="lesson-list">
+          @for (lesson of completedLessons(); track lesson.id; let i = $index) {
+            <div class="lesson-card lesson-card--done">
+              <div class="lesson-meta">
+                <span class="lesson-number">Lesson {{ i + 1 }}</span>
+                <span class="lesson-date">{{ formatScheduledAt(lesson.scheduledAt) }}</span>
+                <span class="lesson-duration">{{ formatDuration(lesson.duration) }}</span>
+              </div>
+              <p class="lesson-student">{{ lesson.studentName || 'Student' }}</p>
+              @if (lesson.notes) {
+                <p class="lesson-feedback">💬 {{ lesson.notes }}</p>
+              }
+              <span class="lesson-badge-done">✓ Completed</span>
+            </div>
+          }
+        </div>
+      </section>
+    }
   </main>
 
 </div>

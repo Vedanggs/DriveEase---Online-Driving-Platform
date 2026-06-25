@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { EnrollmentService } from '../../../core/services/enrollment.service';
@@ -30,9 +30,9 @@ export class EnrollComponent implements OnInit {
   readonly enrollmentId = signal<string | null>(null);
   readonly copied = signal(false);
 
-  readonly form = this.fb.group({
-    fee: [2500, [Validators.required, Validators.min(1), Validators.max(100000)]]
-  });
+  readonly FIXED_FEE = 4000;
+
+  readonly form = this.fb.group({});
 
   private schoolId = '';
 
@@ -51,11 +51,11 @@ export class EnrollComponent implements OnInit {
     this.error.set(null);
 
     const studentId = this.auth.studentId()!;
-    const fee = this.form.value.fee!;
 
-    this.enrollmentService.enroll({ studentId, drivingSchoolId: this.schoolId, fee }).subscribe({
+    this.enrollmentService.enroll({ studentId, drivingSchoolId: this.schoolId, fee: this.FIXED_FEE }).subscribe({
       next: enrollment => {
         localStorage.setItem('de_enrollment_id', enrollment.id);
+        localStorage.setItem('de_school_id', this.schoolId);
         this.enrollmentId.set(enrollment.id);
         this.success.set(true);
         this.loading.set(false);

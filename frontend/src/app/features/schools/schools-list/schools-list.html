@@ -1,13 +1,13 @@
 <div class="page">
   <div class="page-header">
     <h1>Driving Schools</h1>
-    <p>Browse and enroll in a certified driving school near you</p>
+    <p>Browse and enroll in a certified driving school</p>
   </div>
 
   @if (loading()) {
-    <div class="loading-grid">
+    <div class="schools-grid">
       @for (_ of [1,2,3,4,5,6]; track $index) {
-        <div class="card skeleton"></div>
+        <div class="skeleton"></div>
       }
     </div>
   } @else if (error()) {
@@ -23,35 +23,32 @@
   } @else {
     @if (myEnrollment()) {
       <div class="enrollment-notice">
-        You are enrolled — you can only interact with your enrolled school.
+        You're enrolled — only your school is accessible right now.
       </div>
     }
     <div class="schools-grid">
       @for (school of schools(); track school.id) {
         @if (isEnrolledHere(school.id)) {
           <a class="card card-enrolled" [routerLink]="['/schools', school.id]">
-            <div class="enrolled-badge">✅ Enrolled</div>
-            <div class="card-icon">🏫</div>
+            <div class="enrolled-badge">Enrolled</div>
             <h3>{{ school.name }}</h3>
-            <p class="card-address">📍 {{ school.address }}</p>
-            <p class="card-email">✉️ {{ school.contactEmail }}</p>
-            <span class="card-cta">View details →</span>
+            <p class="card-address">{{ school.address }}</p>
+            <p class="card-email">{{ school.contactEmail }}</p>
+            <span class="card-cta">View school →</span>
           </a>
         } @else if (isEnrolledElsewhere(school.id)) {
           <div class="card card-locked">
-            <div class="card-icon">🏫</div>
             <h3>{{ school.name }}</h3>
-            <p class="card-address">📍 {{ school.address }}</p>
-            <p class="card-email">✉️ {{ school.contactEmail }}</p>
-            <span class="locked-label">🔒 Not available</span>
+            <p class="card-address">{{ school.address }}</p>
+            <p class="card-email">{{ school.contactEmail }}</p>
+            <span class="locked-label">Not available</span>
           </div>
         } @else {
           <a class="card" [routerLink]="['/schools', school.id]">
-            <div class="card-icon">🏫</div>
             <h3>{{ school.name }}</h3>
-            <p class="card-address">📍 {{ school.address }}</p>
-            <p class="card-email">✉️ {{ school.contactEmail }}</p>
-            <span class="card-cta">View details →</span>
+            <p class="card-address">{{ school.address }}</p>
+            <p class="card-email">{{ school.contactEmail }}</p>
+            <span class="card-cta">View school →</span>
           </a>
         }
       }

@@ -1,6 +1,22 @@
-import { Component, inject, signal, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, inject, signal, ViewChild, ElementRef, AfterViewInit, OnDestroy, OnInit } from '@angular/core';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
+
+function strongPassword(control: AbstractControl): ValidationErrors | null {
+  const val: string = control.value ?? '';
+  const errors: string[] = [];
+  if (val.length < 8)                                                        errors.push('8 characters');
+  if ((val.match(/[0-9]/g) ?? []).length < 2)                                errors.push('2 numbers');
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val))                  errors.push('1 special character');
+  return errors.length ? { strongPassword: errors } : null;
+}
+
+interface SchoolOption {
+  id: string;
+  name: string;
+}
 
 @Component({
   selector: 'app-instructor-register',
@@ -9,33 +25,36 @@ import { Router, RouterLink } from '@angular/router';
   templateUrl: './instructor-register.html',
   styleUrl: './instructor-register.scss'
 })
-export class InstructorRegisterComponent implements AfterViewInit, OnDestroy {
+export class InstructorRegisterComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('roadCanvas') private readonly canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private readonly fb     = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly http   = inject(HttpClient);
 
-  readonly loading = signal(false);
-  readonly error   = signal<string | null>(null);
-
-  // Stub schools list — replaced by real API call in Day 30
-  readonly schools = [
-    { id: '15d15651-e781-45e9-a980-d10738a93981', name: 'Pune Road Masters' },
-    { id: '2a3b4c5d-1234-5678-abcd-ef1234567890', name: 'Mumbai Drive Academy' },
-    { id: '3c4d5e6f-2345-6789-bcde-f01234567891', name: 'Nashik Wheels Institute' }
-  ];
+  readonly loading      = signal(false);
+  readonly error        = signal<string | null>(null);
+  readonly schools      = signal<SchoolOption[]>([]);
+  readonly showPassword = signal(false);
 
   readonly form = this.fb.group({
     fullName:      ['', [Validators.required, Validators.minLength(2)]],
     email:         ['', [Validators.required, Validators.email]],
     licenseNumber: ['', [Validators.required, Validators.minLength(3)]],
     schoolId:      ['', Validators.required],
-    password:      ['', [Validators.required, Validators.minLength(8)]]
+    password:      ['', [Validators.required, Validators.maxLength(100), strongPassword]]
   });
 
   private rafId: number | null = null;
   private offset = 0;
   private resizeHandler: (() => void) | null = null;
+
+  ngOnInit() {
+    this.http.get<SchoolOption[]>(`${environment.apiUrl}/api/v1/schools`).subscribe({
+      next: list => this.schools.set(list),
+      error: ()   => this.error.set('Could not load schools. Please refresh.')
+    });
+  }
 
   ngAfterViewInit() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -53,19 +72,42 @@ export class InstructorRegisterComponent implements AfterViewInit, OnDestroy {
     this.loading.set(true);
     this.error.set(null);
 
-    const { fullName, email, schoolId } = this.form.value;
-    const school = this.schools.find(s => s.id === schoolId);
+    const { fullName, email, licenseNumber, schoolId, password } = this.form.value;
+    const school = this.schools().find(s => s.id === schoolId);
 
-    // Happy path stub — real instructor registration wired in Day 30
-    setTimeout(() => {
-      sessionStorage.setItem('instructor_session', JSON.stringify({
-        email,
-        name: fullName,
-        schoolName: school?.name ?? 'Your School',
-        schoolId
-      }));
-      this.router.navigate(['/instructor/dashboard']);
-    }, 900);
+    // Guard: email must not already be registered.
+    const existing: Record<string, unknown> = JSON.parse(localStorage.getItem('instructor_profiles') ?? '{}');
+    if (existing[email!]) {
+      this.error.set('An account with this email already exists. Please sign in.');
+      this.loading.set(false);
+      return;
+    }
+
+    this.http.post<{ id: string }>(
+      `${environment.apiUrl}/api/v1/schools/${schoolId}/instructors`,
+      { fullName, licenseNumber }
+    ).subscribe({
+      next: ({ id }) => {
+        const session = {
+          instructorId: id,
+          email,
+          name: fullName,
+          schoolName: school?.name ?? 'Your School',
+          schoolId
+        };
+        sessionStorage.setItem('instructor_session', JSON.stringify(session));
+        const profiles: Record<string, { passwordHash: string } & typeof session> =
+          JSON.parse(localStorage.getItem('instructor_profiles') ?? '{}');
+        profiles[email!] = { ...session, passwordHash: btoa(password!) };
+        localStorage.setItem('instructor_profiles', JSON.stringify(profiles));
+        this.loading.set(false);
+        this.router.navigate(['/instructor/dashboard']);
+      },
+      error: () => {
+        this.error.set('Registration failed. Please try again.');
+        this.loading.set(false);
+      }
+    });
   }
 
   private startRoad() {

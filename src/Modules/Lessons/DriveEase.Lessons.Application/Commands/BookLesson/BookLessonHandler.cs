@@ -12,6 +12,7 @@ public sealed class BookLessonHandler(
         var lesson = Lesson.Book(
             request.EnrollmentId,
             request.StudentId,
+            request.StudentName,
             request.InstructorId,
             request.ScheduledAt,
             request.Duration);

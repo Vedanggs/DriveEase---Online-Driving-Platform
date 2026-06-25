@@ -9,12 +9,19 @@ using System.Text.Json;
 namespace DriveEase.Api.Workers;
 
 // Polls the outbox tables in each module every 10 seconds.
-// For each unprocessed message it deserialises the event and publishes it to the event bus,
-// then stamps ProcessedAt so the message is not retried.
+// On success: stamps ProcessedAt so the message is never picked up again.
+// On failure: increments RetryCount. After MaxRetryCount failures the message
+//             is dead-lettered (DeadLettered = true) and permanently skipped.
+//
+// NOTE: for true exponential back-off, add a NextRetryAt column and change the
+//       WHERE clause to also check `m.NextRetryAt <= DateTime.UtcNow`. The current
+//       implementation retries on every 10-second poll until MaxRetryCount is hit.
 public sealed class OutboxRelayWorker(
     IServiceScopeFactory scopeFactory,
     ILogger<OutboxRelayWorker> logger) : BackgroundService
 {
+    private const int MaxRetryCount = 5;
+
     private static readonly MethodInfo PublishMethod =
         typeof(IEventBus).GetMethod(nameof(IEventBus.PublishAsync))!;
 
@@ -46,17 +53,15 @@ public sealed class OutboxRelayWorker(
         IEventBus eventBus,
         CancellationToken cancellationToken)
     {
-        // AsNoTracking: we update via ExecuteUpdateAsync to avoid EF concurrency tracking issues.
         var pending = await context.Set<OutboxMessage>()
             .AsNoTracking()
-            .Where(m => m.ProcessedAt == null)
+            .Where(m => m.ProcessedAt == null && !m.DeadLettered)
             .OrderBy(m => m.CreatedAt)
             .Take(50)
             .ToListAsync(cancellationToken);
 
         foreach (var message in pending)
         {
-            string? error = null;
             try
             {
                 var eventType = Type.GetType(message.EventType)
@@ -69,21 +74,37 @@ public sealed class OutboxRelayWorker(
                     .Invoke(eventBus, [integrationEvent, cancellationToken])!;
 
                 logger.LogInformation("Relayed outbox message {Id} ({EventType})", message.Id, eventType.Name);
+
+                var processedAt = DateTime.UtcNow;
+                await context.Set<OutboxMessage>()
+                    .Where(m => m.Id == message.Id)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(m => m.ProcessedAt, processedAt)
+                        .SetProperty(m => m.Error, (string?)null),
+                        cancellationToken);
             }
             catch (Exception ex)
             {
-                error = ex.Message;
-                logger.LogError(ex, "Failed to relay outbox message {Id}", message.Id);
-            }
+                var newRetryCount = message.RetryCount + 1;
+                var deadLetter    = newRetryCount >= MaxRetryCount;
 
-            // Direct update — no EF change tracker involved, no concurrency exception.
-            var processedAt = DateTime.UtcNow;
-            await context.Set<OutboxMessage>()
-                .Where(m => m.Id == message.Id)
-                .ExecuteUpdateAsync(s => s
-                    .SetProperty(m => m.ProcessedAt, processedAt)
-                    .SetProperty(m => m.Error, error),
-                    cancellationToken);
+                logger.LogError(ex,
+                    "Failed to relay outbox message {Id} (attempt {Attempt}/{Max})",
+                    message.Id, newRetryCount, MaxRetryCount);
+
+                if (deadLetter)
+                    logger.LogWarning(
+                        "Dead-lettering outbox message {Id} after {Max} failed attempts",
+                        message.Id, MaxRetryCount);
+
+                await context.Set<OutboxMessage>()
+                    .Where(m => m.Id == message.Id)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(m => m.RetryCount,    newRetryCount)
+                        .SetProperty(m => m.Error,         ex.Message)
+                        .SetProperty(m => m.DeadLettered,  deadLetter),
+                        cancellationToken);
+            }
         }
     }
 }

@@ -2,6 +2,7 @@ using DriveEase.Lessons.Domain.Events;
 using DriveEase.Lessons.Domain.Repositories;
 using DriveEase.Shared.Messaging;
 using DriveEase.Shared.Telemetry;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -11,14 +12,25 @@ namespace DriveEase.Lessons.Infrastructure.Workers;
 
 public sealed class LessonReminderWorker(
     IServiceScopeFactory scopeFactory,
+    IConfiguration configuration,
     ILogger<LessonReminderWorker> logger) : BackgroundService
 {
+    // Override in appsettings.Development.json as "Workers:LessonReminderIntervalSeconds": 30
+    // to verify the worker fires in dev without waiting a full hour.
+    private TimeSpan Interval =>
+        TimeSpan.FromSeconds(
+            int.TryParse(configuration["Workers:LessonReminderIntervalSeconds"], out var s) ? s : 3600);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        logger.LogInformation(
+            "LessonReminderWorker started — polling every {Interval}",
+            Interval);
+
         while (!stoppingToken.IsCancellationRequested)
         {
             await SendRemindersAsync(stoppingToken);
-            await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+            await Task.Delay(Interval, stoppingToken);
         }
     }
 
@@ -51,23 +63,32 @@ public sealed class LessonReminderWorker(
                 reminderActivity?.SetTag("lesson.hours_until", hoursUntil);
 
                 var reminderEvent = LessonBookedEvent.Create(
-                    lesson.LessonId, lesson.StudentId, lesson.InstructorId, lesson.ScheduledAt);
+                    lesson.LessonId, lesson.StudentId, lesson.StudentName,
+                    lesson.InstructorId, lesson.ScheduledAt);
+
                 await eventBus.PublishAsync(reminderEvent, cancellationToken);
 
                 reminderActivity?.AddEvent(new ActivityEvent("reminder.published"));
                 reminderActivity?.SetStatus(ActivityStatusCode.Ok);
 
                 remindersSentThisTick++;
-                logger.LogInformation("Reminder sent for lesson {LessonId}", lesson.LessonId);
+                logger.LogInformation(
+                    "Reminder sent for lesson {LessonId} (student: {StudentName})",
+                    lesson.LessonId, lesson.StudentName);
             }
         }
 
         DriveEaseTelemetry.LessonRemindersSent.Add(remindersSentThisTick);
         workerActivity?.SetTag("worker.reminders_sent", remindersSentThisTick);
+
+        logger.LogInformation(
+            "LessonReminderWorker tick complete — {Checked} lessons checked, {Sent} reminders sent",
+            upcomingLessons.Count, remindersSentThisTick);
     }
 }
 
-public record UpcomingLesson(Guid LessonId, Guid StudentId, Guid InstructorId, DateTime ScheduledAt);
+public record UpcomingLesson(
+    Guid LessonId, Guid StudentId, string StudentName, Guid InstructorId, DateTime ScheduledAt);
 
 public interface IUpcomingLessonsQuery
 {

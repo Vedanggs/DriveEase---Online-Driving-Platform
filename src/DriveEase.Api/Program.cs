@@ -11,6 +11,7 @@ using DriveEase.Enrollments.Infrastructure.Persistence;
 using DriveEase.Lessons.Infrastructure;
 using DriveEase.Lessons.Infrastructure.Persistence;
 using DriveEase.Notifications.Infrastructure;
+using DriveEase.Notifications.Infrastructure.Persistence;
 using DriveEase.Schools.Infrastructure;
 using DriveEase.Schools.Infrastructure.Persistence;
 using DriveEase.Shared;
@@ -254,12 +255,18 @@ builder.Services.AddMediatR(cfg =>
         typeof(DriveEase.Students.Application.Commands.RegisterStudent.RegisterStudentHandler).Assembly);
     cfg.RegisterServicesFromAssembly(
         typeof(DriveEase.Lessons.Application.Commands.BookLesson.BookLessonHandler).Assembly);
+    cfg.RegisterServicesFromAssembly(
+        typeof(DriveEase.Notifications.Application.Queries.GetInstructorNotificationsHandler).Assembly);
 
     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
     cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
 });
 
-builder.Services.AddNotificationsModule();
+var notificationsConn = sqlResolved
+    ? sqlConn!
+    : $"Data Source={Path.Combine(Path.GetTempPath(), "driveease-notifications.db")}";
+
+builder.Services.AddNotificationsModule(notificationsConn);
 builder.Services.AddHostedService<OutboxRelayWorker>();
 
 var app = builder.Build();
@@ -305,157 +312,27 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
-// ── Schema init on cold start ─────────────────────────────────────────────────
-try
+// ── Run EF Core migrations on cold start ─────────────────────────────────────
+// Each module migrates independently so one failure does not block the others.
 {
     using var scope = app.Services.CreateScope();
     var sp = scope.ServiceProvider;
+    var startupLogger = sp.GetRequiredService<ILogger<Program>>();
 
-    if (sqlResolved)
+    async Task MigrateAsync<TContext>(string name) where TContext : DbContext
     {
-        var ctx = sp.GetRequiredService<SchoolsDbContext>();
-        var conn = ctx.Database.GetDbConnection();
-        conn.Open();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
-            IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'schools')    EXEC('CREATE SCHEMA schools');
-            IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'students')   EXEC('CREATE SCHEMA students');
-            IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'enrollments') EXEC('CREATE SCHEMA enrollments');
-            IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'lessons')    EXEC('CREATE SCHEMA lessons');
-
-            IF OBJECT_ID('schools.Schools','U') IS NULL
-            BEGIN
-                CREATE TABLE schools.Schools (
-                    Id           UNIQUEIDENTIFIER NOT NULL,
-                    Name         NVARCHAR(200)    NOT NULL,
-                    Address      NVARCHAR(500)    NOT NULL,
-                    ContactEmail NVARCHAR(200)    NOT NULL,
-                    IsActive     BIT              NOT NULL,
-                    RegisteredAt DATETIME2        NOT NULL,
-                    CONSTRAINT PK_Schools PRIMARY KEY (Id));
-            END
-
-            IF OBJECT_ID('schools.Instructors','U') IS NULL
-            BEGIN
-                CREATE TABLE schools.Instructors (
-                    Id            UNIQUEIDENTIFIER NOT NULL,
-                    SchoolId      UNIQUEIDENTIFIER NOT NULL,
-                    FullName      NVARCHAR(200)    NOT NULL,
-                    LicenseNumber NVARCHAR(50)     NOT NULL,
-                    IsAvailable   BIT              NOT NULL,
-                    CONSTRAINT PK_Instructors PRIMARY KEY (Id));
-                CREATE INDEX IX_Instructors_SchoolId ON schools.Instructors (SchoolId);
-            END
-
-            IF OBJECT_ID('students.Students','U') IS NULL
-            BEGIN
-                CREATE TABLE students.Students (
-                    Id           UNIQUEIDENTIFIER NOT NULL,
-                    FullName     NVARCHAR(200)    NOT NULL,
-                    Email        NVARCHAR(200)    NOT NULL,
-                    PhoneNumber  NVARCHAR(30)     NULL,
-                    DateOfBirth  DATE             NOT NULL,
-                    RegisteredAt DATETIME2        NOT NULL,
-                    PasswordHash NVARCHAR(500)    NOT NULL,
-                    CONSTRAINT PK_Students PRIMARY KEY (Id));
-                CREATE UNIQUE INDEX IX_Students_Email ON students.Students (Email);
-            END
-
-            IF OBJECT_ID('students.RefreshTokens','U') IS NULL
-            BEGIN
-                CREATE TABLE students.RefreshTokens (
-                    Id              UNIQUEIDENTIFIER NOT NULL,
-                    Token           NVARCHAR(200)    NOT NULL,
-                    StudentId       UNIQUEIDENTIFIER NOT NULL,
-                    Family          NVARCHAR(50)     NOT NULL,
-                    ExpiresAt       DATETIME2        NOT NULL,
-                    CreatedAt       DATETIME2        NOT NULL,
-                    RevokedAt       DATETIME2        NULL,
-                    ReplacedByToken NVARCHAR(200)    NULL,
-                    CONSTRAINT PK_RefreshTokens PRIMARY KEY (Id));
-                CREATE UNIQUE INDEX IX_RefreshTokens_Token ON students.RefreshTokens (Token);
-                CREATE INDEX IX_RefreshTokens_StudentId ON students.RefreshTokens (StudentId);
-            END
-
-            IF OBJECT_ID('enrollments.Enrollments','U') IS NULL
-            BEGIN
-                CREATE TABLE enrollments.Enrollments (
-                    Id                 UNIQUEIDENTIFIER NOT NULL,
-                    StudentId          UNIQUEIDENTIFIER NOT NULL,
-                    DrivingSchoolId    UNIQUEIDENTIFIER NOT NULL,
-                    InstructorId       UNIQUEIDENTIFIER NULL,
-                    Fee                DECIMAL(18,2)    NOT NULL,
-                    PaymentStatus      NVARCHAR(MAX)    NOT NULL,
-                    Status             NVARCHAR(MAX)    NOT NULL,
-                    EnrolledAt         DATETIME2        NOT NULL,
-                    PaymentConfirmedAt DATETIME2        NULL,
-                    CancelledAt        DATETIME2        NULL,
-                    CONSTRAINT PK_Enrollments PRIMARY KEY (Id));
-                CREATE INDEX IX_Enrollments_StudentId ON enrollments.Enrollments (StudentId);
-                CREATE INDEX IX_Enrollments_StudentId_Status ON enrollments.Enrollments (StudentId, Status);
-            END
-
-            IF OBJECT_ID('lessons.Lessons','U') IS NULL
-            BEGIN
-                CREATE TABLE lessons.Lessons (
-                    Id           UNIQUEIDENTIFIER NOT NULL,
-                    EnrollmentId UNIQUEIDENTIFIER NOT NULL,
-                    StudentId    UNIQUEIDENTIFIER NOT NULL,
-                    InstructorId UNIQUEIDENTIFIER NOT NULL,
-                    ScheduledAt  DATETIME2        NOT NULL,
-                    Duration     FLOAT            NOT NULL,
-                    Status       NVARCHAR(MAX)    NOT NULL,
-                    Notes        NVARCHAR(MAX)    NULL,
-                    CompletedAt  DATETIME2        NULL,
-                    CONSTRAINT PK_Lessons PRIMARY KEY (Id));
-                CREATE INDEX IX_Lessons_StudentId_ScheduledAt ON lessons.Lessons (StudentId, ScheduledAt);
-                CREATE INDEX IX_Lessons_EnrollmentId ON lessons.Lessons (EnrollmentId);
-            END
-
-            IF OBJECT_ID('enrollments.OutboxMessages','U') IS NULL
-            BEGIN
-                CREATE TABLE enrollments.OutboxMessages (
-                    Id          UNIQUEIDENTIFIER NOT NULL,
-                    EventType   NVARCHAR(500)    NOT NULL,
-                    Payload     NVARCHAR(MAX)    NOT NULL,
-                    CreatedAt   DATETIME2        NOT NULL,
-                    ProcessedAt DATETIME2        NULL,
-                    Error       NVARCHAR(MAX)    NULL,
-                    CONSTRAINT PK_EnrollmentOutboxMessages PRIMARY KEY (Id));
-                CREATE INDEX IX_EnrollmentOutbox_Unprocessed ON enrollments.OutboxMessages (ProcessedAt)
-                    WHERE ProcessedAt IS NULL;
-            END
-
-            IF OBJECT_ID('lessons.OutboxMessages','U') IS NULL
-            BEGIN
-                CREATE TABLE lessons.OutboxMessages (
-                    Id          UNIQUEIDENTIFIER NOT NULL,
-                    EventType   NVARCHAR(500)    NOT NULL,
-                    Payload     NVARCHAR(MAX)    NOT NULL,
-                    CreatedAt   DATETIME2        NOT NULL,
-                    ProcessedAt DATETIME2        NULL,
-                    Error       NVARCHAR(MAX)    NULL,
-                    CONSTRAINT PK_LessonOutboxMessages PRIMARY KEY (Id));
-                CREATE INDEX IX_LessonOutbox_Unprocessed ON lessons.OutboxMessages (ProcessedAt)
-                    WHERE ProcessedAt IS NULL;
-            END
-            """;
-        cmd.ExecuteNonQuery();
-        conn.Close();
+        try   { await sp.GetRequiredService<TContext>().Database.MigrateAsync(); }
+        catch (Exception ex) { startupLogger.LogError(ex, "Migration failed for {Context}", name); }
     }
-    else
-    {
-        sp.GetRequiredService<EnrollmentsDbContext>().Database.EnsureCreated();
-        sp.GetRequiredService<StudentsDbContext>().Database.EnsureCreated();
-        sp.GetRequiredService<SchoolsDbContext>().Database.EnsureCreated();
-        sp.GetRequiredService<LessonsDbContext>().Database.EnsureCreated();
-    }
+
+    await MigrateAsync<StudentsDbContext>("Students");
+    await MigrateAsync<SchoolsDbContext>("Schools");
+    await MigrateAsync<EnrollmentsDbContext>("Enrollments");
+    await MigrateAsync<LessonsDbContext>("Lessons");
+    await MigrateAsync<NotificationsDbContext>("Notifications");
 }
-catch (Exception ex)
-{
-    var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
-    startupLogger.LogWarning(ex, "Schema init failed on startup — app will start but SQL operations may fail.");
-}
+
+await DatabaseSeeder.SeedAsync(app.Services);
 
 app.UseSwagger();
 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "DriveEase API v1"));

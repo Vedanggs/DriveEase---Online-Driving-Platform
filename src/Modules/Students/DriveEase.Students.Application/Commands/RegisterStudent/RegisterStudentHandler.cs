@@ -17,7 +17,7 @@ public sealed class RegisterStudentHandler(
 
         var passwordHash = passwordHasher.Hash(request.Password);
         var student = Student.Register(
-            request.FullName, request.Email, request.PhoneNumber,
+            request.FullName, request.Email, request.PhoneNumber ?? string.Empty,
             request.DateOfBirth, passwordHash);
 
         await repository.AddAsync(student, cancellationToken);
