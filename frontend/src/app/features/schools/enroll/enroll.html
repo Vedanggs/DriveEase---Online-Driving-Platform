@@ -33,21 +33,6 @@
       }
 
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <div class="field">
-          <label for="fee">Enrollment fee (₹)</label>
-          <input
-            id="fee"
-            type="number"
-            formControlName="fee"
-            min="1"
-            max="100000"
-            [attr.aria-invalid]="form.controls.fee.invalid && form.controls.fee.touched"
-          />
-          @if (form.controls.fee.invalid && form.controls.fee.touched) {
-            <span class="field-error" role="alert">Enter a valid fee (1 – 100,000)</span>
-          }
-        </div>
-
         <div class="summary-box">
           <div class="summary-row">
             <span>School</span>
@@ -55,7 +40,7 @@
           </div>
           <div class="summary-row">
             <span>Fee</span>
-            <strong>₹ {{ form.value.fee | number }}</strong>
+            <strong>₹ 4,000</strong>
           </div>
           <div class="summary-row">
             <span>Payment</span>

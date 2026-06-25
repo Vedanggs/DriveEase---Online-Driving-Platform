@@ -1,6 +1,7 @@
 export interface BookLessonRequest {
   enrollmentId: string;
   studentId: string;
+  studentName: string;
   instructorId: string;
   scheduledAt: string;
   duration: string;
@@ -15,4 +16,15 @@ export interface LessonDto {
   duration: string;   // TimeSpan from backend: "01:00:00"
   status: string;
   notes: string | null;
+}
+
+export interface InstructorLessonDto {
+  id: string;
+  studentId: string;
+  studentName: string;
+  scheduledAt: string;
+  duration: string;
+  status: string;
+  notes: string | null;
+  completedAt: string | null;
 }

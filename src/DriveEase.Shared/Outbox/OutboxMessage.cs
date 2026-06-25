@@ -11,6 +11,8 @@ public sealed class OutboxMessage
     public DateTime CreatedAt { get; init; }
     public DateTime? ProcessedAt { get; set; }
     public string? Error { get; set; }
+    public int RetryCount { get; set; }
+    public bool DeadLettered { get; set; }
 
     public static OutboxMessage From(IIntegrationEvent integrationEvent) => new()
     {

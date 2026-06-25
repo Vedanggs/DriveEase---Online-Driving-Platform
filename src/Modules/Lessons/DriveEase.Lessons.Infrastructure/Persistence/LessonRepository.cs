@@ -40,6 +40,14 @@ public sealed class LessonRepository(LessonsDbContext dbContext) : ILessonReposi
             .Where(l => l.EnrollmentId == enrollmentId)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Lesson>> GetByInstructorAsync(
+        Guid instructorId, CancellationToken cancellationToken = default) =>
+        await dbContext.Lessons
+            .AsNoTracking()
+            .Where(l => l.InstructorId == instructorId && l.Status != LessonStatus.Cancelled)
+            .OrderBy(l => l.ScheduledAt)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(Lesson lesson, CancellationToken cancellationToken = default)
     {
         await dbContext.Lessons.AddAsync(lesson, cancellationToken);

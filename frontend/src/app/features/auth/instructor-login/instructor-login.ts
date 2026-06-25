@@ -43,17 +43,28 @@ export class InstructorLoginComponent implements AfterViewInit, OnDestroy {
     this.loading.set(true);
     this.error.set(null);
 
-    const { email } = this.form.value;
+    const { email, password } = this.form.value;
 
-    // Happy path stub — real instructor auth wired up in Day 30
-    setTimeout(() => {
-      sessionStorage.setItem('instructor_session', JSON.stringify({
-        email,
-        name: email!.split('@')[0],
-        schoolName: 'Pune Road Masters'
-      }));
-      this.router.navigate(['/instructor/dashboard']);
-    }, 800);
+    const profiles: Record<string, { passwordHash: string; instructorId: string; name: string; schoolName: string; schoolId: string }> =
+      JSON.parse(localStorage.getItem('instructor_profiles') ?? '{}');
+    const saved = profiles[email!];
+
+    if (!saved) {
+      this.error.set('No account found for this email. Please register first.');
+      this.loading.set(false);
+      return;
+    }
+
+    if (saved.passwordHash !== btoa(password!)) {
+      this.error.set('Incorrect password. Please try again.');
+      this.loading.set(false);
+      return;
+    }
+
+    const { passwordHash: _, ...session } = saved;
+    sessionStorage.setItem('instructor_session', JSON.stringify({ ...session, email }));
+    this.loading.set(false);
+    this.router.navigate(['/instructor/dashboard']);
   }
 
   private startRoad() {

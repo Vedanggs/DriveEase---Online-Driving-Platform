@@ -28,6 +28,11 @@ public sealed class DrivingSchool : AggregateRoot<Guid>
         };
     }
 
+    // Used by the infrastructure layer to rehydrate instances returned from Dapper queries.
+    public static DrivingSchool Reconstruct(
+        Guid id, string name, string address, string contactEmail, bool isActive, DateTime registeredAt) =>
+        new() { Id = id, Name = name, Address = address, ContactEmail = contactEmail, IsActive = isActive, RegisteredAt = registeredAt };
+
     public void Deactivate() => IsActive = false;
 
     public void UpdateContact(string email) => ContactEmail = email;

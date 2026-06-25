@@ -16,7 +16,7 @@ public sealed class UpcomingLessonsQuery(LessonsDbContext dbContext) : IUpcoming
             .Where(l => l.Status == LessonStatus.Scheduled
                      && l.ScheduledAt >= now
                      && l.ScheduledAt <= cutoff)
-            .Select(l => new UpcomingLesson(l.Id, l.StudentId, l.InstructorId, l.ScheduledAt))
+            .Select(l => new UpcomingLesson(l.Id, l.StudentId, l.StudentName, l.InstructorId, l.ScheduledAt))
             .ToListAsync(cancellationToken);
     }
 }

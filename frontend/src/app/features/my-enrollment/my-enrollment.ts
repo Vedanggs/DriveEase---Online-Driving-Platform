@@ -37,6 +37,8 @@ export class MyEnrollmentComponent implements OnInit {
       this.enrollment.set(enrollment);
       this.school.set(school);
       this.loading.set(false);
+      // Keep school ID in sync for book-lesson instructor dropdown
+      if (enrollment) localStorage.setItem('de_school_id', enrollment.drivingSchoolId);
     });
   }
 

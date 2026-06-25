@@ -55,15 +55,26 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
     const { email, password } = this.form.value;
 
     if (this.role() === 'instructor') {
-      // Stub — real instructor auth in Day 30
-      setTimeout(() => {
-        sessionStorage.setItem('instructor_session', JSON.stringify({
-          email,
-          name: email!.split('@')[0],
-          schoolName: 'Pune Road Masters'
-        }));
-        this.router.navigate(['/instructor/dashboard']);
-      }, 800);
+      const profiles: Record<string, any> =
+        JSON.parse(localStorage.getItem('instructor_profiles') ?? '{}');
+      const saved = profiles[email!];
+
+      if (!saved) {
+        this.error.set('No account found for this email. Please register first.');
+        this.loading.set(false);
+        return;
+      }
+
+      if (saved.passwordHash !== btoa(password!)) {
+        this.error.set('Incorrect password. Please try again.');
+        this.loading.set(false);
+        return;
+      }
+
+      const { passwordHash: _pw, ...session } = saved;
+      sessionStorage.setItem('instructor_session', JSON.stringify({ ...session, email }));
+      this.loading.set(false);
+      this.router.navigate(['/instructor/dashboard']);
       return;
     }
 

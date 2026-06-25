@@ -27,29 +27,53 @@
 
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <div class="field">
-          <label for="instructorId">Instructor ID</label>
-          <input
-            id="instructorId"
-            type="text"
-            formControlName="instructorId"
-            placeholder="Paste instructor UUID"
-            [attr.aria-invalid]="form.controls.instructorId.invalid && form.controls.instructorId.touched"
-          />
+          <label for="instructorId">Instructor</label>
+          @if (instructors().length === 0) {
+            <p class="field-hint">No instructors available at your school yet.</p>
+          } @else {
+            <select
+              id="instructorId"
+              formControlName="instructorId"
+              [attr.aria-invalid]="form.controls.instructorId.invalid && form.controls.instructorId.touched">
+              <option value="" disabled>Select an instructor</option>
+              @for (inst of instructors(); track inst.id) {
+                <option [value]="inst.id">{{ inst.fullName }} — {{ inst.licenseNumber }}</option>
+              }
+            </select>
+          }
           @if (form.controls.instructorId.invalid && form.controls.instructorId.touched) {
-            <span class="field-error" role="alert">Instructor ID is required</span>
+            <span class="field-error" role="alert">Please select an instructor</span>
           }
         </div>
 
         <div class="field">
-          <label for="scheduledAt">Date & time</label>
+          <label for="date">Date</label>
           <input
-            id="scheduledAt"
-            type="datetime-local"
-            formControlName="scheduledAt"
-            [attr.aria-invalid]="form.controls.scheduledAt.invalid && form.controls.scheduledAt.touched"
+            id="date"
+            type="date"
+            formControlName="date"
+            [min]="minDate"
+            [max]="maxDate"
+            [attr.aria-invalid]="form.controls.date.invalid && form.controls.date.touched"
           />
-          @if (form.controls.scheduledAt.invalid && form.controls.scheduledAt.touched) {
-            <span class="field-error" role="alert">Please select a date and time</span>
+          @if (form.controls.date.invalid && form.controls.date.touched) {
+            <span class="field-error" role="alert">Please select a date</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="timeSlot">Time slot</label>
+          <select
+            id="timeSlot"
+            formControlName="timeSlot"
+            [attr.aria-invalid]="form.controls.timeSlot.invalid && form.controls.timeSlot.touched">
+            <option value="" disabled>Select a time</option>
+            @for (slot of availableTimeSlots(); track slot) {
+              <option [value]="slot">{{ slot }}</option>
+            }
+          </select>
+          @if (form.controls.timeSlot.invalid && form.controls.timeSlot.touched) {
+            <span class="field-error" role="alert">Please select a time slot</span>
           }
         </div>
 

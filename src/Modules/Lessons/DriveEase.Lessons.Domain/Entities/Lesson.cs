@@ -9,6 +9,7 @@ public sealed class Lesson : AggregateRoot<Guid>
 {
     public Guid EnrollmentId { get; private set; }
     public Guid StudentId { get; private set; }
+    public string StudentName { get; private set; } = string.Empty;
     public Guid InstructorId { get; private set; }
     public DateTime ScheduledAt { get; private set; }
     public TimeSpan Duration { get; private set; }
@@ -18,7 +19,7 @@ public sealed class Lesson : AggregateRoot<Guid>
 
     private Lesson() { }
 
-    public static Lesson Book(Guid enrollmentId, Guid studentId, Guid instructorId, DateTime scheduledAt, TimeSpan duration)
+    public static Lesson Book(Guid enrollmentId, Guid studentId, string studentName, Guid instructorId, DateTime scheduledAt, TimeSpan duration)
     {
         if (scheduledAt <= DateTime.UtcNow)
             throw new InvalidOperationException("Lesson must be scheduled in the future.");
@@ -28,13 +29,14 @@ public sealed class Lesson : AggregateRoot<Guid>
             Id = Guid.NewGuid(),
             EnrollmentId = enrollmentId,
             StudentId = studentId,
+            StudentName = studentName,
             InstructorId = instructorId,
             ScheduledAt = scheduledAt,
             Duration = duration,
             Status = LessonStatus.Scheduled
         };
 
-        lesson.RaiseDomainEvent(LessonBookedEvent.Create(lesson.Id, studentId, instructorId, scheduledAt));
+        lesson.RaiseDomainEvent(LessonBookedEvent.Create(lesson.Id, studentId, studentName, instructorId, scheduledAt));
         return lesson;
     }
 
