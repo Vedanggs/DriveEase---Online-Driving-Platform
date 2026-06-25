@@ -27,6 +27,8 @@ export class EnrollComponent implements OnInit {
   readonly pageLoading = signal(true);
   readonly error = signal<string | null>(null);
   readonly success = signal(false);
+  readonly enrollmentId = signal<string | null>(null);
+  readonly copied = signal(false);
 
   readonly form = this.fb.group({
     fee: [2500, [Validators.required, Validators.min(1), Validators.max(100000)]]
@@ -54,13 +56,31 @@ export class EnrollComponent implements OnInit {
     this.enrollmentService.enroll({ studentId, drivingSchoolId: this.schoolId, fee }).subscribe({
       next: enrollment => {
         localStorage.setItem('de_enrollment_id', enrollment.id);
+        this.enrollmentId.set(enrollment.id);
         this.success.set(true);
-        setTimeout(() => this.router.navigate(['/lessons']), 2000);
+        this.loading.set(false);
       },
       error: (err) => {
         this.error.set(err?.error?.detail ?? 'Enrollment failed. Please try again.');
         this.loading.set(false);
       }
     });
+  }
+
+  copyId() {
+    const id = this.enrollmentId();
+    if (!id) return;
+    navigator.clipboard.writeText(id).then(() => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    });
+  }
+
+  goToLessons() {
+    this.router.navigate(['/lessons']);
+  }
+
+  goToMyEnrollment() {
+    this.router.navigate(['/my-enrollment']);
   }
 }

@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations;
 namespace DriveEase.Students.Application.Commands.RegisterStudent;
 
 public sealed record RegisterStudentCommand(
-    [property: Required, MaxLength(200)] string FullName,
-    [property: Required, EmailAddress, MaxLength(200)] string Email,
-    [property: Phone, MaxLength(30)] string PhoneNumber,
+    [Required, MaxLength(200)] string FullName,
+    [Required, EmailAddress, MaxLength(200)] string Email,
+    [Phone, MaxLength(30)] string? PhoneNumber,
     DateOnly DateOfBirth,
-    [property: Required, MinLength(8), MaxLength(100)] string Password) : IRequest<Guid>;
+    [Required, MinLength(8), MaxLength(100)] string Password) : IRequest<Guid>;

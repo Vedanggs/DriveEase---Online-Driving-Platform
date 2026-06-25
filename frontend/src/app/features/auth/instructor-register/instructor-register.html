@@ -1,0 +1,89 @@
+<div class="auth-layout">
+
+  <div class="road-panel" aria-hidden="true">
+    <canvas #roadCanvas></canvas>
+    <div class="brand">
+      <span class="brand-pip"></span>
+      DriveEase
+    </div>
+    <div class="road-footer">
+      <p class="tagline">
+        Join as an<br>instructor and<br>
+        <strong>start teaching.</strong>
+      </p>
+      <p class="road-stat">Instructor Portal</p>
+    </div>
+  </div>
+
+  <div class="form-panel">
+    <div class="form-wrap">
+      <div class="role-badge">Instructor Registration</div>
+      <h1 class="form-title">Create your account.</h1>
+      <p class="form-sub">Set up your instructor profile and select your school.</p>
+
+      @if (error()) {
+        <div class="alert-error" role="alert">{{ error() }}</div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+
+        <div class="field" [class.has-error]="form.controls.fullName.invalid && form.controls.fullName.touched">
+          <label for="fullName">Full Name</label>
+          <input id="fullName" type="text" formControlName="fullName"
+            autocomplete="name" placeholder="As on your license" />
+          @if (form.controls.fullName.invalid && form.controls.fullName.touched) {
+            <span class="field-error" role="alert">Enter your full name</span>
+          }
+        </div>
+
+        <div class="field" [class.has-error]="form.controls.email.invalid && form.controls.email.touched">
+          <label for="email">Email Address</label>
+          <input id="email" type="email" formControlName="email"
+            autocomplete="email" placeholder="instructor@school.com" />
+          @if (form.controls.email.invalid && form.controls.email.touched) {
+            <span class="field-error" role="alert">Enter a valid email</span>
+          }
+        </div>
+
+        <div class="field" [class.has-error]="form.controls.licenseNumber.invalid && form.controls.licenseNumber.touched">
+          <label for="licenseNumber">License Number</label>
+          <input id="licenseNumber" type="text" formControlName="licenseNumber"
+            placeholder="MH-1234567890" />
+          @if (form.controls.licenseNumber.invalid && form.controls.licenseNumber.touched) {
+            <span class="field-error" role="alert">Enter your license number</span>
+          }
+        </div>
+
+        <div class="field" [class.has-error]="form.controls.schoolId.invalid && form.controls.schoolId.touched">
+          <label for="schoolId">Driving School</label>
+          <select id="schoolId" formControlName="schoolId">
+            <option value="" disabled>Select your school</option>
+            @for (school of schools; track school.id) {
+              <option [value]="school.id">{{ school.name }}</option>
+            }
+          </select>
+          @if (form.controls.schoolId.invalid && form.controls.schoolId.touched) {
+            <span class="field-error" role="alert">Select your school</span>
+          }
+        </div>
+
+        <div class="field" [class.has-error]="form.controls.password.invalid && form.controls.password.touched">
+          <label for="password">Password</label>
+          <input id="password" type="password" formControlName="password"
+            autocomplete="new-password" placeholder="Min. 8 characters" />
+          @if (form.controls.password.invalid && form.controls.password.touched) {
+            <span class="field-error" role="alert">Min. 8 characters</span>
+          }
+        </div>
+
+        <button type="submit" class="btn-primary" [disabled]="loading()">
+          {{ loading() ? 'Creating account…' : 'Create Instructor Account' }}
+        </button>
+      </form>
+
+      <p class="auth-footer">Already registered? <a routerLink="/instructor-login">Sign in</a></p>
+      <p class="auth-footer">Student? <a routerLink="/register">Register here</a></p>
+    </div>
+  </div>
+
+</div>

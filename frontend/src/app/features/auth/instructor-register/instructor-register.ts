@@ -1,29 +1,36 @@
 import { Component, inject, signal, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
-  selector: 'app-login',
+  selector: 'app-instructor-register',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './login.html',
-  styleUrl: './login.scss'
+  templateUrl: './instructor-register.html',
+  styleUrl: './instructor-register.scss'
 })
-export class LoginComponent implements AfterViewInit, OnDestroy {
+export class InstructorRegisterComponent implements AfterViewInit, OnDestroy {
   @ViewChild('roadCanvas') private readonly canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private readonly fb     = inject(FormBuilder);
-  private readonly auth   = inject(AuthService);
   private readonly router = inject(Router);
 
   readonly loading = signal(false);
   readonly error   = signal<string | null>(null);
-  readonly role    = signal<'student' | 'instructor'>('student');
+
+  // Stub schools list — replaced by real API call in Day 30
+  readonly schools = [
+    { id: '15d15651-e781-45e9-a980-d10738a93981', name: 'Pune Road Masters' },
+    { id: '2a3b4c5d-1234-5678-abcd-ef1234567890', name: 'Mumbai Drive Academy' },
+    { id: '3c4d5e6f-2345-6789-bcde-f01234567891', name: 'Nashik Wheels Institute' }
+  ];
 
   readonly form = this.fb.group({
-    email:    ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]]
+    fullName:      ['', [Validators.required, Validators.minLength(2)]],
+    email:         ['', [Validators.required, Validators.email]],
+    licenseNumber: ['', [Validators.required, Validators.minLength(3)]],
+    schoolId:      ['', Validators.required],
+    password:      ['', [Validators.required, Validators.minLength(8)]]
   });
 
   private rafId: number | null = null;
@@ -40,40 +47,25 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
     if (this.resizeHandler) window.removeEventListener('resize', this.resizeHandler);
   }
 
-  setRole(r: 'student' | 'instructor') {
-    this.role.set(r);
-    this.error.set(null);
-    this.form.reset();
-  }
-
   submit() {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
 
     this.loading.set(true);
     this.error.set(null);
 
-    const { email, password } = this.form.value;
+    const { fullName, email, schoolId } = this.form.value;
+    const school = this.schools.find(s => s.id === schoolId);
 
-    if (this.role() === 'instructor') {
-      // Stub — real instructor auth in Day 30
-      setTimeout(() => {
-        sessionStorage.setItem('instructor_session', JSON.stringify({
-          email,
-          name: email!.split('@')[0],
-          schoolName: 'Pune Road Masters'
-        }));
-        this.router.navigate(['/instructor/dashboard']);
-      }, 800);
-      return;
-    }
-
-    this.auth.login({ email: email!, password: password! }).subscribe({
-      next:  () => this.router.navigate(['/schools']),
-      error: () => {
-        this.error.set('Invalid email or password.');
-        this.loading.set(false);
-      }
-    });
+    // Happy path stub — real instructor registration wired in Day 30
+    setTimeout(() => {
+      sessionStorage.setItem('instructor_session', JSON.stringify({
+        email,
+        name: fullName,
+        schoolName: school?.name ?? 'Your School',
+        schoolId
+      }));
+      this.router.navigate(['/instructor/dashboard']);
+    }, 900);
   }
 
   private startRoad() {
@@ -98,7 +90,6 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
   }
 
   private drawRoad(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-    const isInstructor = this.role() === 'instructor';
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
 
@@ -109,11 +100,9 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
     ctx.moveTo(vx - topW / 2, vy); ctx.lineTo(vx + topW / 2, vy);
     ctx.lineTo(vx + botW / 2, H);  ctx.lineTo(vx - botW / 2, H);
     ctx.closePath();
-    ctx.fillStyle = isInstructor ? '#0f1a0f' : '#181818';
-    ctx.fill();
+    ctx.fillStyle = '#0f1a0f'; ctx.fill();
 
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.10)';
     ctx.beginPath(); ctx.moveTo(vx - topW / 2, vy); ctx.lineTo(vx - botW * 0.88 / 2, H); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(vx + topW / 2, vy); ctx.lineTo(vx + botW * 0.88 / 2, H); ctx.stroke();
 
@@ -130,15 +119,11 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
       ctx.moveTo(vx - rw0 * 0.035 / 2, y0); ctx.lineTo(vx + rw0 * 0.035 / 2, y0);
       ctx.lineTo(vx + rw1 * 0.035 / 2, y1); ctx.lineTo(vx - rw1 * 0.035 / 2, y1);
       ctx.closePath();
-      ctx.fillStyle = isInstructor ? 'rgba(52,211,153,0.90)' : 'rgba(245,197,24,0.88)';
-      ctx.fill();
+      ctx.fillStyle = 'rgba(52, 211, 153, 0.90)'; ctx.fill();
     }
 
-    const color = isInstructor ? '52,211,153' : '245,197,24';
     const glow = ctx.createRadialGradient(vx, vy, 0, vx, vy, W * 0.52);
-    glow.addColorStop(0, `rgba(${color},0.06)`);
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, W, H);
+    glow.addColorStop(0, 'rgba(52,211,153,0.07)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
   }
 }

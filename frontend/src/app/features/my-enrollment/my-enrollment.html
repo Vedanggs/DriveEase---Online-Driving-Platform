@@ -1,0 +1,71 @@
+<div class="page">
+  <h1 class="page-title">My Enrollment</h1>
+
+  @if (loading()) {
+    <div class="skeleton-card"></div>
+  } @else if (!enrollment()) {
+    <div class="empty-state">
+      <span class="empty-icon">🎓</span>
+      <p class="empty-title">You are not enrolled yet</p>
+      <p class="empty-sub">Browse schools and enroll to start your driving journey.</p>
+      <a class="btn-browse" routerLink="/schools">Browse Schools</a>
+    </div>
+  } @else {
+    <div class="enrollment-card">
+      <div class="card-header">
+        <span class="school-icon">🏫</span>
+        <div>
+          <h2>{{ school()?.name ?? 'Your School' }}</h2>
+          <span class="status-badge" [class.status-active]="enrollment()!.status === 'Active'">
+            {{ enrollment()!.status }}
+          </span>
+        </div>
+      </div>
+
+      <div class="id-section">
+        <p class="id-label">Enrollment ID</p>
+        <div class="id-row">
+          <code class="id-value">{{ enrollment()!.id }}</code>
+          <button class="btn-copy" (click)="copyId()" [class.copied]="copied()">
+            {{ copied() ? '✓ Copied' : 'Copy' }}
+          </button>
+        </div>
+        <p class="id-hint">Use this ID when booking a lesson under "Book a Lesson".</p>
+      </div>
+
+      <div class="details-grid">
+        <div class="detail-item">
+          <span class="detail-label">School</span>
+          <span class="detail-value">{{ school()?.name ?? '—' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Address</span>
+          <span class="detail-value">{{ school()?.address ?? '—' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Fee Paid</span>
+          <span class="detail-value">₹ {{ enrollment()!.fee.toLocaleString('en-IN') }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Payment</span>
+          <span class="detail-value payment-badge" [class.paid]="enrollment()!.paymentStatus === 'Paid'">
+            {{ enrollment()!.paymentStatus }}
+          </span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Enrolled On</span>
+          <span class="detail-value">{{ formatDate(enrollment()!.enrolledAt) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Payment Confirmed</span>
+          <span class="detail-value">{{ formatDate(enrollment()!.paymentConfirmedAt) }}</span>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        <a class="btn-primary" routerLink="/lessons/book">Book a Lesson</a>
+        <a class="btn-secondary" [routerLink]="['/schools', enrollment()!.drivingSchoolId]">View School</a>
+      </div>
+    </div>
+  }
+</div>

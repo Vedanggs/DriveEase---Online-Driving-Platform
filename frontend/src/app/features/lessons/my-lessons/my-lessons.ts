@@ -32,6 +32,15 @@ export class MyLessonsComponent implements OnInit {
     });
   }
 
+  formatDuration(duration: string): string {
+    if (!duration) return '—';
+    const parts = duration.split(':').map(Number);
+    const h = parts[0], m = parts[1] ?? 0;
+    if (h === 0) return `${m} min`;
+    if (m === 0) return `${h} hr`;
+    return `${h} hr ${m} min`;
+  }
+
   statusClass(status: string): string {
     switch (status?.toLowerCase()) {
       case 'scheduled': return 'status-scheduled';

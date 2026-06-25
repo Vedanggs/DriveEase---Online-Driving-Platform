@@ -4,8 +4,24 @@
   @if (success()) {
     <div class="success-card">
       <span class="success-icon">✅</span>
-      <h2>Enrolled successfully!</h2>
-      <p>Payment processed. Redirecting to your lessons…</p>
+      <h2>Enrolled in {{ school()?.name }}!</h2>
+      <p class="success-sub">Your enrollment is confirmed and payment has been processed.</p>
+
+      <div class="enrollment-id-block">
+        <p class="id-label">Your Enrollment ID</p>
+        <div class="id-row">
+          <code class="id-value">{{ enrollmentId() }}</code>
+          <button class="btn-copy" (click)="copyId()" [class.copied]="copied()">
+            {{ copied() ? '✓ Copied' : 'Copy' }}
+          </button>
+        </div>
+        <p class="id-hint">Paste this ID when booking a lesson under "Book a Lesson".</p>
+      </div>
+
+      <div class="success-actions">
+        <button class="btn-primary" (click)="goToMyEnrollment()">View My Enrollment</button>
+        <button class="btn-secondary" (click)="goToLessons()">Book a Lesson</button>
+      </div>
     </div>
   } @else {
     <div class="form-card">

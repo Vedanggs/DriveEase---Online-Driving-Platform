@@ -31,7 +31,17 @@
         </div>
       </div>
 
-      @if (school()!.isActive) {
+      @if (isEnrolledHere) {
+        <div class="enrolled-here">
+          ✅ You are enrolled here
+          <p class="enrolled-sub">Complete your lessons to finish the course.</p>
+        </div>
+      } @else if (isEnrolledElsewhere) {
+        <div class="enrolled-elsewhere">
+          🔒 You are already enrolled in another school.
+          <p class="enrolled-sub">Complete or cancel your current enrollment before joining a new school.</p>
+        </div>
+      } @else if (school()!.isActive) {
         <a class="btn-enroll" [routerLink]="['/schools', school()!.id, 'enroll']">
           Enroll now →
         </a>

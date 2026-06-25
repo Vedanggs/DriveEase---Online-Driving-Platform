@@ -20,6 +20,10 @@ export class EnrollmentService {
       );
   }
 
+  getMyEnrollment() {
+    return this.http.get<EnrollmentDto | null>(`${environment.apiUrl}/api/v1/enrollments/me`);
+  }
+
   getById(id: string) {
     return this.http.get<EnrollmentDto>(`${environment.apiUrl}/api/v1/enrollments/${id}`);
   }

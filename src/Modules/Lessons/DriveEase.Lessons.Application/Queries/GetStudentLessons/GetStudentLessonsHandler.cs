@@ -16,6 +16,7 @@ public sealed class GetStudentLessonsHandler(ILessonRepository repository)
                 l.Id,
                 l.EnrollmentId,
                 l.ScheduledAt,
+                l.Duration,
                 l.Status.ToString(),
                 l.Notes,
                 l.CompletedAt))

@@ -42,7 +42,7 @@
           </div>
           <div class="lesson-info">
             <div class="lesson-time">{{ lesson.scheduledAt | date:'h:mm a' }}</div>
-            <div class="lesson-duration">Duration: {{ lesson.duration }}</div>
+            <div class="lesson-duration">{{ formatDuration(lesson.duration) }}</div>
             @if (lesson.notes) {
               <div class="lesson-notes">{{ lesson.notes }}</div>
             }

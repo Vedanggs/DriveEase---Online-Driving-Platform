@@ -6,7 +6,7 @@ export interface LoginRequest {
 export interface RegisterRequest {
   fullName: string;
   email: string;
-  phoneNumber: string;
+  phoneNumber: string | null;
   dateOfBirth: string;
   password: string;
 }

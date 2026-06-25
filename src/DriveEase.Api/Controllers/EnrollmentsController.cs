@@ -1,9 +1,12 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using DriveEase.Enrollments.Application.Commands.AssignInstructor;
 using DriveEase.Enrollments.Application.Commands.EnrollStudent;
 using DriveEase.Enrollments.Application.Commands.ProcessPayment;
 using DriveEase.Enrollments.Application.Queries.GetEnrollment;
+using DriveEase.Enrollments.Application.Queries.GetMyEnrollment;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,6 +23,18 @@ public sealed class EnrollmentsController(ISender sender) : ControllerBase
     {
         var id = await sender.Send(command, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id }, new { id });
+    }
+
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMyEnrollment(CancellationToken cancellationToken)
+    {
+        var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                  ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(sub, out var studentId))
+            return Unauthorized();
+
+        var dto = await sender.Send(new GetMyEnrollmentQuery(studentId), cancellationToken);
+        return Ok(dto);
     }
 
     [HttpGet("{id:guid}")]

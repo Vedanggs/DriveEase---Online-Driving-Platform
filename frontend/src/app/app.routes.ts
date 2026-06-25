@@ -8,6 +8,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login/login').then(m => m.LoginComponent)
   },
   {
+    path: 'instructor-register',
+    loadComponent: () => import('./features/auth/instructor-register/instructor-register').then(m => m.InstructorRegisterComponent)
+  },
+  {
+    path: 'instructor/dashboard',
+    loadComponent: () => import('./features/instructor/dashboard/instructor-dashboard').then(m => m.InstructorDashboardComponent)
+  },
+  {
     path: 'register',
     loadComponent: () => import('./features/auth/register/register').then(m => m.RegisterComponent)
   },
@@ -25,6 +33,11 @@ export const routes: Routes = [
     path: 'schools/:id/enroll',
     canActivate: [authGuard],
     loadComponent: () => import('./features/schools/enroll/enroll').then(m => m.EnrollComponent)
+  },
+  {
+    path: 'my-enrollment',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/my-enrollment/my-enrollment').then(m => m.MyEnrollmentComponent)
   },
   {
     path: 'lessons',

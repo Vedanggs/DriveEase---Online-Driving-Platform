@@ -6,6 +6,7 @@ public sealed record StudentLessonDto(
     Guid Id,
     Guid EnrollmentId,
     DateTime ScheduledAt,
+    TimeSpan Duration,
     string Status,
     string? Notes,
     DateTime? CompletedAt);

@@ -1,106 +1,132 @@
-<div class="auth-page">
-  <div class="auth-card">
-    <h1>Create account</h1>
-    <p class="subtitle">Start your driving journey with DriveEase</p>
+<div class="auth-layout">
 
-    @if (error()) {
-      <div class="alert-error" role="alert">{{ error() }}</div>
-    }
-
-    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-      <div class="field">
-        <label for="fullName">Full name</label>
-        <input id="fullName" type="text" formControlName="fullName" autocomplete="name"
-          [attr.aria-invalid]="form.controls.fullName.invalid && form.controls.fullName.touched" />
-        @if (form.controls.fullName.invalid && form.controls.fullName.touched) {
-          <span class="field-error" role="alert">Full name is required</span>
-        }
-      </div>
-
-      <div class="field">
-        <label for="email">Email address</label>
-        <input id="email" type="email" formControlName="email" autocomplete="email"
-          [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched" />
-        @if (form.controls.email.invalid && form.controls.email.touched) {
-          <span class="field-error" role="alert">Valid email is required</span>
-        }
-      </div>
-
-      <div class="field">
-        <label for="phone">Phone number</label>
-        <input id="phone" type="tel" formControlName="phoneNumber" autocomplete="tel"
-          placeholder="+91 98765 43210" />
-      </div>
-
-      <div class="field">
-        <label>Date of birth</label>
-        <div class="dob-row">
-          <select formControlName="dobDay" aria-label="Day"
-            [attr.aria-invalid]="form.controls.dobDay.invalid && form.controls.dobDay.touched">
-            <option value="" disabled>Day</option>
-            @for (d of days; track d) {
-              <option [value]="d">{{ d }}</option>
-            }
-          </select>
-
-          <select formControlName="dobMonth" aria-label="Month"
-            [attr.aria-invalid]="form.controls.dobMonth.invalid && form.controls.dobMonth.touched">
-            <option value="" disabled>Month</option>
-            @for (m of months; track m) {
-              <option [value]="m">{{ m }}</option>
-            }
-          </select>
-
-          <select formControlName="dobYear" aria-label="Year"
-            [attr.aria-invalid]="form.controls.dobYear.invalid && form.controls.dobYear.touched">
-            <option value="" disabled>Year</option>
-            @for (y of years; track y) {
-              <option [value]="y">{{ y }}</option>
-            }
-          </select>
-        </div>
-        @if ((form.controls.dobDay.invalid || form.controls.dobMonth.invalid || form.controls.dobYear.invalid)
-          && (form.controls.dobDay.touched || form.controls.dobMonth.touched || form.controls.dobYear.touched)) {
-          <span class="field-error" role="alert">Please select your date of birth</span>
-        }
-      </div>
-
-      <div class="field">
-        <label for="password">Password</label>
-        <input id="password" [type]="showPassword() ? 'text' : 'password'" formControlName="password" autocomplete="new-password"
-          [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched" />
-        <button type="button" class="toggle-password" (click)="showPassword.set(!showPassword())">
-          {{ showPassword() ? '🙈 Hide password' : '👁 Show password' }}
-        </button>
-        @if (form.controls.password.touched) {
-          @if (form.controls.password.errors?.['required']) {
-            <span class="field-error" role="alert">Password is required</span>
-          } @else if (form.controls.password.errors?.['strongPassword']) {
-            <span class="field-error" role="alert">
-              Missing: {{ form.controls.password.errors?.['strongPassword']?.join(' · ') }}
-            </span>
-          }
-        }
-        @if (form.controls.password.dirty && form.controls.password.errors?.['strongPassword']) {
-          <ul class="password-rules">
-            @if (form.controls.password.errors?.['strongPassword']?.includes('8 characters')) {
-              <li>Minimum 8 characters</li>
-            }
-            @if (form.controls.password.errors?.['strongPassword']?.includes('2 numbers')) {
-              <li>At least 2 numbers</li>
-            }
-            @if (form.controls.password.errors?.['strongPassword']?.includes('1 special character')) {
-              <li>At least 1 special character (!@#$…)</li>
-            }
-          </ul>
-        }
-      </div>
-
-      <button type="submit" class="btn-primary" [disabled]="loading()">
-        {{ loading() ? 'Creating account…' : 'Create account' }}
-      </button>
-    </form>
-
-    <p class="auth-footer">Already have an account? <a routerLink="/login">Sign in</a></p>
+  <!-- Road panel -->
+  <div class="road-panel" aria-hidden="true">
+    <canvas #roadCanvas></canvas>
+    <div class="brand">
+      <span class="brand-pip"></span>
+      DriveEase
+    </div>
+    <div class="road-footer">
+      <p class="tagline">
+        Book your<br>
+        <strong>first lesson.</strong>
+      </p>
+      <p class="road-stat">2,400+ students licensed</p>
+    </div>
   </div>
+
+  <!-- Form panel -->
+  <div class="form-panel">
+    <div class="form-wrap">
+      <h1 class="form-title">Create account</h1>
+      <p class="form-sub">Start your driving journey with DriveEase.</p>
+
+      @if (error()) {
+        <div class="alert-error" role="alert">{{ error() }}</div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+
+        <div class="field" [class.has-error]="form.controls.fullName.invalid && form.controls.fullName.touched">
+          <label for="fullName">Full Name</label>
+          <input id="fullName" type="text" formControlName="fullName" autocomplete="name"
+            placeholder="As it appears on your ID"
+            [attr.aria-invalid]="form.controls.fullName.invalid && form.controls.fullName.touched" />
+          @if (form.controls.fullName.invalid && form.controls.fullName.touched) {
+            <span class="field-error" role="alert">Full name is required</span>
+          }
+        </div>
+
+        <div class="field" [class.has-error]="form.controls.email.invalid && form.controls.email.touched">
+          <label for="email">Email Address</label>
+          <input id="email" type="email" formControlName="email" autocomplete="email"
+            placeholder="you@example.com"
+            [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched" />
+          @if (form.controls.email.invalid && form.controls.email.touched) {
+            <span class="field-error" role="alert">Valid email is required</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="phone">Phone Number <span class="opt">(optional)</span></label>
+          <input id="phone" type="tel" formControlName="phoneNumber" autocomplete="tel"
+            placeholder="+91 98765 43210" />
+        </div>
+
+        <div class="field">
+          <label>Date of Birth</label>
+          <div class="dob-row">
+            <select formControlName="dobDay" aria-label="Day"
+              [attr.aria-invalid]="form.controls.dobDay.invalid && form.controls.dobDay.touched">
+              <option value="" disabled>DD</option>
+              @for (d of days; track d) {
+                <option [value]="d">{{ d }}</option>
+              }
+            </select>
+
+            <select formControlName="dobMonth" aria-label="Month"
+              [attr.aria-invalid]="form.controls.dobMonth.invalid && form.controls.dobMonth.touched">
+              <option value="" disabled>Month</option>
+              @for (m of months; track m) {
+                <option [value]="m">{{ m }}</option>
+              }
+            </select>
+
+            <select formControlName="dobYear" aria-label="Year"
+              [attr.aria-invalid]="form.controls.dobYear.invalid && form.controls.dobYear.touched">
+              <option value="" disabled>YYYY</option>
+              @for (y of years; track y) {
+                <option [value]="y">{{ y }}</option>
+              }
+            </select>
+          </div>
+          @if ((form.controls.dobDay.invalid || form.controls.dobMonth.invalid || form.controls.dobYear.invalid)
+            && (form.controls.dobDay.touched || form.controls.dobMonth.touched || form.controls.dobYear.touched)) {
+            <span class="field-error" role="alert">Please select your date of birth</span>
+          }
+        </div>
+
+        <div class="field" [class.has-error]="form.controls.password.touched && !!form.controls.password.errors?.['required']">
+          <label for="password">Password</label>
+          <div class="pw-row">
+            <input id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              autocomplete="new-password"
+              placeholder="Min. 8 characters"
+              [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched" />
+            <button type="button" class="pw-toggle"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              (click)="showPassword.set(!showPassword())">
+              {{ showPassword() ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+          @if (form.controls.password.touched && form.controls.password.errors?.['required']) {
+            <span class="field-error" role="alert">Password is required</span>
+          }
+          @if (form.controls.password.dirty && form.controls.password.errors?.['strongPassword']) {
+            <ul class="password-rules">
+              @if (form.controls.password.errors?.['strongPassword']?.includes('8 characters')) {
+                <li>Minimum 8 characters</li>
+              }
+              @if (form.controls.password.errors?.['strongPassword']?.includes('2 numbers')) {
+                <li>At least 2 numbers</li>
+              }
+              @if (form.controls.password.errors?.['strongPassword']?.includes('1 special character')) {
+                <li>At least 1 special character</li>
+              }
+            </ul>
+          }
+        </div>
+
+        <button type="submit" class="btn-primary" [disabled]="loading()">
+          {{ loading() ? 'Creating account…' : 'Create account' }}
+        </button>
+      </form>
+
+      <p class="auth-footer">Already have an account? <a routerLink="/login">Sign in</a></p>
+    </div>
+  </div>
+
 </div>

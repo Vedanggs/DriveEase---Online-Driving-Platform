@@ -1,94 +1,247 @@
-.auth-page {
+// ── Design Tokens ──────────────────────────────────────────────
+$ground:    #F5F3EE;
+$text:      #1A1816;
+$accent:    #F5C518;
+$muted:     #7A7672;
+$border:    #D8D4CE;
+$error:     #C94040;
+$panel-bg:  #0C0C0C;
+$panel-txt: #F5F3EE;
+$mono:      'Courier New', 'Lucida Console', monospace;
+$sans:      system-ui, -apple-system, 'Segoe UI', Helvetica, sans-serif;
+
+// ── Split Layout ────────────────────────────────────────────────
+.auth-layout {
+  display: flex;
   min-height: calc(100vh - 60px);
+
+  @media (max-width: 760px) {
+    flex-direction: column;
+  }
+}
+
+// ── Road Panel (left) ───────────────────────────────────────────
+.road-panel {
+  flex: 0 0 43%;
+  background: $panel-bg;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 36px 44px;
+  overflow: hidden;
+
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  @media (max-width: 760px) {
+    flex: none;
+    height: 200px;
+    padding: 20px 24px;
+  }
+}
+
+.brand {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: $mono;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $panel-txt;
+  font-weight: normal;
+
+  .brand-pip {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: $accent;
+    flex-shrink: 0;
+  }
+}
+
+.road-footer {
+  position: relative;
+  z-index: 2;
+}
+
+.tagline {
+  font-family: $sans;
+  font-size: clamp(20px, 2.6vw, 34px);
+  font-weight: 300;
+  color: $panel-txt;
+  line-height: 1.18;
+  letter-spacing: -0.015em;
+  margin-bottom: 16px;
+
+  strong {
+    display: block;
+    font-weight: 800;
+    color: $accent;
+    letter-spacing: -0.025em;
+  }
+
+  @media (max-width: 760px) {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+}
+
+.road-stat {
+  font-family: $mono;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(245, 243, 238, 0.38);
+}
+
+// ── Form Panel (right) ──────────────────────────────────────────
+.form-panel {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f9fafb;
-  padding: 2rem 1rem;
+  padding: 48px 60px;
+  background: $ground;
+
+  @media (max-width: 760px) {
+    padding: 36px 24px;
+    align-items: flex-start;
+  }
 }
 
-.auth-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 2.5rem;
+.form-wrap {
   width: 100%;
-  max-width: 420px;
+  max-width: 352px;
 
-  h1 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #111827;
-    margin-bottom: 0.375rem;
-  }
-
-  .subtitle {
-    color: #6b7280;
-    font-size: 0.9rem;
-    margin-bottom: 1.75rem;
+  @media (max-width: 760px) {
+    max-width: 100%;
   }
 }
 
+// ── Headings ────────────────────────────────────────────────────
+.form-title {
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin-bottom: 6px;
+  color: $text;
+}
+
+.form-sub {
+  font-size: 13px;
+  color: $muted;
+  line-height: 1.5;
+  margin-bottom: 28px;
+}
+
+// ── Error Alert ─────────────────────────────────────────────────
 .alert-error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  margin-bottom: 1.25rem;
+  font-family: $mono;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: $error;
+  background: rgba(201, 64, 64, 0.07);
+  border-left: 3px solid $error;
+  padding: 9px 12px;
+  margin-bottom: 18px;
+  line-height: 1.5;
 }
 
+// ── Fields ──────────────────────────────────────────────────────
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
-  margin-bottom: 1.125rem;
+  gap: 5px;
+  margin-bottom: 22px;
 
   label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #374151;
+    font-family: $mono;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: $muted;
+
+    .opt {
+      font-size: 8px;
+      opacity: 0.55;
+      letter-spacing: 0.08em;
+    }
   }
 
-  input, select {
-    padding: 0.625rem 0.875rem;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    color: #111827;
-    transition: border-color 0.15s, box-shadow 0.15s;
+  input,
+  select {
+    font-family: $sans;
+    font-size: 14px;
+    color: $text;
+    background: transparent;
+    border: none;
+    border-bottom: 1.5px solid $border;
+    padding: 7px 0;
     outline: none;
+    border-radius: 0;
+    width: 100%;
+    transition: border-color 0.18s;
+    appearance: none;
+    -webkit-appearance: none;
 
-    &:focus {
-      border-color: #1a56db;
-      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
-    }
+    &::placeholder { color: rgba(26, 24, 22, 0.22); }
+    &:focus        { border-bottom-color: $accent; }
+  }
 
-    &[aria-invalid='true'] {
-      border-color: #ef4444;
-    }
+  &.has-error input,
+  &.has-error select {
+    border-bottom-color: $error;
   }
 }
 
 .field-error {
-  font-size: 0.775rem;
-  color: #ef4444;
+  font-family: $mono;
+  font-size: 10px;
+  color: $error;
+  letter-spacing: 0.04em;
 }
 
-.toggle-password {
-  align-self: flex-start;
+// ── Password Row ────────────────────────────────────────────────
+.pw-row {
+  position: relative;
+
+  input { padding-right: 46px; }
+}
+
+.pw-toggle {
+  position: absolute;
+  right: 0;
+  bottom: 7px;
   background: none;
   border: none;
-  color: #1a56db;
-  font-size: 0.8rem;
+  font-family: $mono;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $muted;
   cursor: pointer;
   padding: 0;
-  margin-top: 2px;
+  transition: color 0.15s;
 
-  &:hover { text-decoration: underline; }
+  &:hover      { color: $text; }
+  &:focus-visible {
+    outline: 2px solid $accent;
+    outline-offset: 2px;
+    border-radius: 1px;
+  }
 }
 
+// ── Password Rules ──────────────────────────────────────────────
 .password-rules {
   list-style: none;
   margin-top: 6px;
@@ -97,53 +250,114 @@
   gap: 3px;
 
   li {
-    font-size: 0.75rem;
-    color: #9ca3af;
-    padding-left: 16px;
+    font-family: $mono;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: $error;
+    padding-left: 14px;
     position: relative;
 
     &::before {
       content: '✗';
       position: absolute;
       left: 0;
-      color: #ef4444;
     }
 
     &.met {
-      color: #6b7280;
-      &::before { content: '✓'; color: #10b981; }
+      color: $muted;
+      &::before { content: '✓'; color: #4AA866; }
     }
   }
 }
 
+// ── DOB Row ─────────────────────────────────────────────────────
 .dob-row {
   display: grid;
-  grid-template-columns: 80px 1fr 90px;
-  gap: 8px;
+  grid-template-columns: 60px 1fr 78px;
+  gap: 10px;
 }
 
+// ── Submit Button ───────────────────────────────────────────────
 .btn-primary {
   width: 100%;
-  padding: 0.7rem;
-  background: #1a56db;
-  color: #fff;
+  padding: 13px 20px;
+  background: $accent;
+  color: $text;
+  font-family: $mono;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  border-radius: 2px;
   cursor: pointer;
-  margin-top: 0.5rem;
-  transition: background 0.15s;
+  margin-top: 8px;
+  margin-bottom: 16px;
+  transition: opacity 0.15s, transform 0.1s;
 
-  &:hover:not(:disabled) { background: #1648c0; }
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
+  &:hover:not(:disabled)   { opacity: 0.88; }
+  &:active:not(:disabled)  { transform: scale(0.985); }
+  &:focus-visible          { outline: 2px solid $text; outline-offset: 2px; }
+  &:disabled               { opacity: 0.38; cursor: not-allowed; }
 }
 
+// ── Role Toggle ─────────────────────────────────────────────────
+.role-toggle {
+  display: flex;
+  gap: 0;
+  background: $border;
+  border-radius: 6px;
+  padding: 3px;
+  margin-bottom: 24px;
+  width: fit-content;
+}
+
+.role-btn {
+  padding: 6px 20px;
+  font-family: $mono;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+  color: $muted;
+  transition: background 0.15s, color 0.15s;
+
+  &.active {
+    background: $ground;
+    color: $text;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+}
+
+.instructor-btn {
+  background: #111827 !important;
+  color: #f9fafb !important;
+
+  &:hover:not(:disabled) { background: #1f2937 !important; opacity: 1; }
+}
+
+// ── Footer Link ─────────────────────────────────────────────────
 .auth-footer {
   text-align: center;
-  margin-top: 1.5rem;
-  font-size: 0.875rem;
-  color: #6b7280;
+  font-size: 12px;
+  color: $muted;
+  line-height: 1.6;
 
-  a { color: #1a56db; text-decoration: none; font-weight: 500; }
+  a {
+    color: $text;
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid $accent;
+    transition: opacity 0.15s;
+
+    &:hover { opacity: 0.6; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
 }

@@ -12,7 +12,7 @@ export interface LessonDto {
   studentId: string;
   instructorId: string;
   scheduledAt: string;
-  duration: string;
+  duration: string;   // TimeSpan from backend: "01:00:00"
   status: string;
   notes: string | null;
 }

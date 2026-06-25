@@ -1,0 +1,39 @@
+@use '../auth-shared';
+
+.brand .brand-pip  { background: #34d399; }
+.tagline strong    { color: #34d399; }
+.road-stat         { color: rgba(52, 211, 153, 0.5); }
+
+.field input:focus,
+.field select:focus { border-bottom-color: #34d399; }
+
+.field select {
+  cursor: pointer;
+  color: #1A1816;
+
+  option[value=""] { color: rgba(26, 24, 22, 0.4); }
+}
+
+.btn-primary {
+  background: #111827;
+  color: #f9fafb;
+
+  &:hover:not(:disabled) { background: #1f2937; opacity: 1; }
+}
+
+.auth-footer a { border-bottom-color: #34d399; }
+
+.role-badge {
+  display: inline-block;
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #065f46;
+  background: #d1fae5;
+  border: 1px solid #6ee7b7;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+}
