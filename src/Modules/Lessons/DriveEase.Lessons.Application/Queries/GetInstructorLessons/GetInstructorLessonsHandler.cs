@@ -14,6 +14,7 @@ public sealed class GetInstructorLessonsHandler(ILessonRepository repository)
         return lessons
             .Select(l => new InstructorLessonDto(
                 l.Id,
+                l.EnrollmentId,
                 l.StudentId,
                 l.StudentName,
                 l.ScheduledAt,

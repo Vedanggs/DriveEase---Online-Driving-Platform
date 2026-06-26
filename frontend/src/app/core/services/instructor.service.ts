@@ -26,4 +26,11 @@ export class InstructorService {
       notes ? { notes } : {}
     );
   }
+
+  markNotificationRead(notificationId: string) {
+    return this.http.patch<void>(
+      `${environment.apiUrl}/api/v1/notifications/${notificationId}/read`,
+      {}
+    );
+  }
 }

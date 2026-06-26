@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { LessonService } from '../../../core/services/lesson.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { EnrollmentService } from '../../../core/services/enrollment.service';
 import { environment } from '../../../../environments/environment';
 
 interface InstructorOption {
@@ -11,6 +12,8 @@ interface InstructorOption {
   fullName: string;
   licenseNumber: string;
 }
+
+const MAX_LESSONS = 5;
 
 @Component({
   selector: 'app-book-lesson',
@@ -25,16 +28,28 @@ export class BookLessonComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
+  private readonly enrollmentService = inject(EnrollmentService);
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly success = signal(false);
   readonly instructors = signal<InstructorOption[]>([]);
   readonly selectedDate = signal<string>('');
+  readonly bookedSlots = signal<{ scheduledAt: string; duration: string }[]>([]);
 
-  readonly enrollmentId = localStorage.getItem('de_enrollment_id') ?? '';
-  readonly schoolId     = localStorage.getItem('de_school_id') ?? '';
-  readonly hasEnrollment = !!this.enrollmentId;
+  readonly bookedCount = signal(0);
+  readonly remainingLessons = computed(() => Math.max(0, MAX_LESSONS - this.bookedCount()));
+  readonly atLimit = computed(() => this.remainingLessons() === 0);
+  readonly maxLessons = MAX_LESSONS;
+
+  // Resolved from API on init; not from potentially stale localStorage
+  private _enrollmentId = '';
+  private _schoolId = '';
+  readonly enrollmentIdLoaded = signal(false);
+
+  get enrollmentId() { return this._enrollmentId; }
+  get schoolId()     { return this._schoolId; }
+  get hasEnrollment() { return !!this._enrollmentId; }
 
   readonly form = this.fb.group({
     instructorId: ['', Validators.required],
@@ -51,10 +66,28 @@ export class BookLessonComponent implements OnInit {
 
   readonly availableTimeSlots = computed(() => {
     const date = this.selectedDate();
-    if (!date || date !== this.localDateStr()) return this.allTimeSlots;
-    const currentHour = new Date().getHours();
-    return this.allTimeSlots.filter(slot => parseInt(slot, 10) > currentHour);
+    let slots = this.allTimeSlots;
+    if (date && date === this.localDateStr()) {
+      const currentHour = new Date().getHours();
+      slots = slots.filter(slot => parseInt(slot, 10) > currentHour);
+    }
+    return slots;
   });
+
+  isSlotTaken(slot: string): boolean {
+    const date = this.selectedDate();
+    if (!date) return false;
+    const durationVal = this.form.value.durationHours ?? '01:00:00';
+    const durationHours = parseInt(durationVal.split(':')[0], 10);
+    const newStart = new Date(`${date}T${slot}:00`).getTime();
+    const newEnd = newStart + durationHours * 3600_000;
+    return this.bookedSlots().some(b => {
+      const bStart = new Date(b.scheduledAt.endsWith('Z') ? b.scheduledAt : b.scheduledAt + 'Z').getTime();
+      const bDurHours = parseInt(b.duration.split(':')[0], 10);
+      const bEnd = bStart + bDurHours * 3600_000;
+      return newStart < bEnd && newEnd > bStart;
+    });
+  }
 
   readonly durationOptions = [
     { value: '01:00:00', label: '1 hour' },
@@ -76,6 +109,22 @@ export class BookLessonComponent implements OnInit {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
+  private loadBookedSlots() {
+    const instructorId = this.form.value.instructorId;
+    const date = this.form.value.date;
+    if (!instructorId || !date) { this.bookedSlots.set([]); return; }
+    this.http.get<{ scheduledAt: string; duration: string }[]>(
+      `${environment.apiUrl}/api/v1/lessons/instructor/${instructorId}/booked-slots?date=${date}`
+    ).subscribe({
+      next: slots => {
+        this.bookedSlots.set(slots);
+        const current = this.form.controls.timeSlot.value;
+        if (current && this.isSlotTaken(current)) this.form.controls.timeSlot.setValue('');
+      },
+      error: () => this.bookedSlots.set([])
+    });
+  }
+
   ngOnInit() {
     this.form.controls.date.valueChanges.subscribe(date => {
       this.selectedDate.set(date ?? '');
@@ -83,18 +132,52 @@ export class BookLessonComponent implements OnInit {
       if (current && !this.availableTimeSlots().includes(current)) {
         this.form.controls.timeSlot.setValue('');
       }
+      this.loadBookedSlots();
     });
 
-    if (!this.schoolId) return;
-    this.http.get<InstructorOption[]>(
-      `${environment.apiUrl}/api/v1/schools/${this.schoolId}/instructors`
-    ).subscribe({
-      next: list => this.instructors.set(list),
-      error: () => this.instructors.set([])
+    this.form.controls.instructorId.valueChanges.subscribe(() => this.loadBookedSlots());
+    this.form.controls.durationHours.valueChanges.subscribe(() => {
+      const current = this.form.controls.timeSlot.value;
+      if (current && this.isSlotTaken(current)) this.form.controls.timeSlot.setValue('');
+    });
+
+    // Always load enrollment fresh from the API so we never book against a stale/old enrollment
+    this.enrollmentService.getMyEnrollment().subscribe({
+      next: enrollment => {
+        this.error.set(null);
+        if (!enrollment) { this.enrollmentIdLoaded.set(true); return; }
+        this._enrollmentId = enrollment.id;
+        this._schoolId = enrollment.drivingSchoolId;
+        localStorage.setItem('de_enrollment_id', enrollment.id);
+        localStorage.setItem('de_school_id', enrollment.drivingSchoolId);
+
+        // Load instructors in parallel — doesn't block form display
+        this.http.get<InstructorOption[]>(
+          `${environment.apiUrl}/api/v1/schools/${this._schoolId}/instructors`
+        ).subscribe({
+          next: list => this.instructors.set(list),
+          error: () => this.instructors.set([])
+        });
+
+        // Fetch authoritative count BEFORE showing the form to eliminate the race condition
+        // where the user clicks "Book lesson" while bookedCount is still 0 (its initial value)
+        // but the backend already sees 5 lessons.
+        this.http.get<{ count: number }>(
+          `${environment.apiUrl}/api/v1/lessons/enrollment/${this._enrollmentId}/count`
+        ).subscribe({
+          next: res => {
+            this.bookedCount.set(res.count);
+            this.enrollmentIdLoaded.set(true);
+          },
+          error: () => this.enrollmentIdLoaded.set(true)
+        });
+      },
+      error: () => this.enrollmentIdLoaded.set(true)
     });
   }
 
   submit() {
+    if (this.atLimit()) return;
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
 
     this.loading.set(true);
@@ -103,11 +186,14 @@ export class BookLessonComponent implements OnInit {
     const v = this.form.value;
     const scheduledAt = `${v.date!}T${v.timeSlot!}:00`;
 
+    const instructorName = this.instructors().find(i => i.id === v.instructorId!)?.fullName ?? '';
+
     this.lessonService.book({
       enrollmentId: this.enrollmentId,
       studentId: this.auth.studentId()!,
       studentName: this.auth.fullName() ?? 'Student',
       instructorId: v.instructorId!,
+      instructorName,
       scheduledAt,
       duration: v.durationHours!
     }).subscribe({

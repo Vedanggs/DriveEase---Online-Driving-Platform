@@ -10,5 +10,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DriveEase.Lessons.Domain\DriveEase.Lessons.Domain.csproj" />
+    <ProjectReference Include="..\..\Enrollments\DriveEase.Enrollments.Domain\DriveEase.Enrollments.Domain.csproj" />
   </ItemGroup>
 </Project>

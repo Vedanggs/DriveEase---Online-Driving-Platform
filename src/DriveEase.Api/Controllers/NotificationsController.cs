@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using DriveEase.Notifications.Application.Commands;
 using DriveEase.Notifications.Application.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -19,5 +20,13 @@ public sealed class NotificationsController(ISender sender) : ControllerBase
         var notifications = await sender.Send(
             new GetInstructorNotificationsQuery(instructorId), cancellationToken);
         return Ok(notifications);
+    }
+
+    [AllowAnonymous]
+    [HttpPatch("{id:guid}/read")]
+    public async Task<IActionResult> MarkRead(Guid id, CancellationToken cancellationToken)
+    {
+        await sender.Send(new MarkNotificationReadCommand(id), cancellationToken);
+        return NoContent();
     }
 }

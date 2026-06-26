@@ -29,6 +29,7 @@ public static class LessonsModule
         services.AddScoped<IUpcomingLessonsQuery, UpcomingLessonsQuery>();
 
         services.AddHostedService<LessonReminderWorker>();
+        services.AddHostedService<LessonExpiryWorker>();
 
         return services;
     }

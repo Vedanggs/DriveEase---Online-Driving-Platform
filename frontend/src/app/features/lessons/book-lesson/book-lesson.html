@@ -1,7 +1,12 @@
 <div class="page">
   <a class="back-link" routerLink="/lessons">← My lessons</a>
 
-  @if (!hasEnrollment) {
+  @if (!enrollmentIdLoaded()) {
+    <div class="warn-card">
+      <span class="warn-icon">⏳</span>
+      <div><strong>Loading your enrollment…</strong></div>
+    </div>
+  } @else if (!hasEnrollment) {
     <div class="warn-card">
       <span class="warn-icon">⚠️</span>
       <div>
@@ -17,79 +22,118 @@
       <p>Redirecting to your lessons…</p>
     </div>
   } @else {
-    <div class="form-card">
-      <h1>Book a lesson</h1>
-      <p class="subtitle">Schedule your next driving lesson with your instructor.</p>
+    <!-- Lesson package counter -->
+    <div class="package-banner" [class.package-banner--full]="atLimit()">
+      <div class="package-info">
+        <span class="package-icon">{{ atLimit() ? '🔒' : '📚' }}</span>
+        <div>
+          <p class="package-title">
+            @if (atLimit()) {
+              Lesson package complete
+            } @else {
+              {{ remainingLessons() }} lesson{{ remainingLessons() === 1 ? '' : 's' }} remaining
+            }
+          </p>
+          <p class="package-sub">{{ bookedCount() }}/{{ maxLessons }} lessons completed by instructor</p>
+        </div>
+      </div>
+      <div class="package-bar-wrap">
+        <div class="package-bar">
+          <div class="package-bar-fill" [style.width.%]="(bookedCount() / maxLessons) * 100"></div>
+        </div>
+        <div class="package-dots">
+          @for (i of [1,2,3,4,5]; track i) {
+            <span class="package-dot" [class.package-dot--filled]="i <= bookedCount()"></span>
+          }
+        </div>
+      </div>
+    </div>
 
-      @if (error()) {
-        <div class="alert-error" role="alert">{{ error() }}</div>
-      }
+    @if (atLimit()) {
+      <div class="limit-card">
+        <span class="limit-icon">🎓</span>
+        <div>
+          <strong>All 5 lessons completed</strong>
+          <p>The instructor has confirmed all 5 lessons in your current enrollment. Your enrollment will close shortly. You can then re-enroll for more lessons.</p>
+        </div>
+      </div>
+    } @else {
+      <div class="form-card">
+        <h1>Book a lesson</h1>
+        <p class="subtitle">Schedule your next driving lesson with your instructor.</p>
 
-      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <div class="field">
-          <label for="instructorId">Instructor</label>
-          @if (instructors().length === 0) {
-            <p class="field-hint">No instructors available at your school yet.</p>
-          } @else {
+        @if (error()) {
+          <div class="alert-error" role="alert">{{ error() }}</div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="field">
+            <label for="instructorId">Instructor</label>
+            @if (instructors().length === 0) {
+              <p class="field-hint">No instructors available at your school yet.</p>
+            } @else {
+              <select
+                id="instructorId"
+                formControlName="instructorId"
+                [attr.aria-invalid]="form.controls.instructorId.invalid && form.controls.instructorId.touched">
+                <option value="" disabled>Select an instructor</option>
+                @for (inst of instructors(); track inst.id) {
+                  <option [value]="inst.id">{{ inst.fullName }} — {{ inst.licenseNumber }}</option>
+                }
+              </select>
+            }
+            @if (form.controls.instructorId.invalid && form.controls.instructorId.touched) {
+              <span class="field-error" role="alert">Please select an instructor</span>
+            }
+          </div>
+
+          <div class="field">
+            <label for="date">Date</label>
+            <input
+              id="date"
+              type="date"
+              formControlName="date"
+              [min]="minDate"
+              [max]="maxDate"
+              [attr.aria-invalid]="form.controls.date.invalid && form.controls.date.touched"
+            />
+            @if (form.controls.date.invalid && form.controls.date.touched) {
+              <span class="field-error" role="alert">Please select a date</span>
+            }
+          </div>
+
+          <div class="field">
+            <label for="timeSlot">Time slot</label>
             <select
-              id="instructorId"
-              formControlName="instructorId"
-              [attr.aria-invalid]="form.controls.instructorId.invalid && form.controls.instructorId.touched">
-              <option value="" disabled>Select an instructor</option>
-              @for (inst of instructors(); track inst.id) {
-                <option [value]="inst.id">{{ inst.fullName }} — {{ inst.licenseNumber }}</option>
+              id="timeSlot"
+              formControlName="timeSlot"
+              [attr.aria-invalid]="form.controls.timeSlot.invalid && form.controls.timeSlot.touched">
+              <option value="" disabled>Select a time</option>
+              @for (slot of availableTimeSlots(); track slot) {
+                <option [value]="slot" [disabled]="isSlotTaken(slot)">
+                  {{ slot }}{{ isSlotTaken(slot) ? ' — Unavailable' : '' }}
+                </option>
               }
             </select>
-          }
-          @if (form.controls.instructorId.invalid && form.controls.instructorId.touched) {
-            <span class="field-error" role="alert">Please select an instructor</span>
-          }
-        </div>
-
-        <div class="field">
-          <label for="date">Date</label>
-          <input
-            id="date"
-            type="date"
-            formControlName="date"
-            [min]="minDate"
-            [max]="maxDate"
-            [attr.aria-invalid]="form.controls.date.invalid && form.controls.date.touched"
-          />
-          @if (form.controls.date.invalid && form.controls.date.touched) {
-            <span class="field-error" role="alert">Please select a date</span>
-          }
-        </div>
-
-        <div class="field">
-          <label for="timeSlot">Time slot</label>
-          <select
-            id="timeSlot"
-            formControlName="timeSlot"
-            [attr.aria-invalid]="form.controls.timeSlot.invalid && form.controls.timeSlot.touched">
-            <option value="" disabled>Select a time</option>
-            @for (slot of availableTimeSlots(); track slot) {
-              <option [value]="slot">{{ slot }}</option>
+            @if (form.controls.timeSlot.invalid && form.controls.timeSlot.touched) {
+              <span class="field-error" role="alert">Please select a time slot</span>
             }
-          </select>
-          @if (form.controls.timeSlot.invalid && form.controls.timeSlot.touched) {
-            <span class="field-error" role="alert">Please select a time slot</span>
-          }
-        </div>
+          </div>
 
-        <div class="field">
-          <label for="duration">Duration</label>
-          <select id="duration" formControlName="durationHours">
-            @for (opt of durationOptions; track opt.value) {
-              <option [value]="opt.value">{{ opt.label }}</option>
-            }
-          </select>
-        </div>
+          <div class="field">
+            <label for="duration">Duration</label>
+            <select id="duration" formControlName="durationHours">
+              @for (opt of durationOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
 
-        <button type="submit" class="btn-primary" [disabled]="loading()">
-          {{ loading() ? 'Booking…' : 'Book lesson' }}
-        </button>
-      </form>
-    </div>
+          <button type="submit" class="btn-primary" [disabled]="loading()">
+            {{ loading() ? 'Booking…' : 'Book lesson' }}
+          </button>
+        </form>
+      </div>
+    }
   }
 </div>

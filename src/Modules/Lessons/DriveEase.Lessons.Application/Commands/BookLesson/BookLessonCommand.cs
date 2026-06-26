@@ -7,5 +7,6 @@ public sealed record BookLessonCommand(
     Guid StudentId,
     string StudentName,
     Guid InstructorId,
+    string InstructorName,
     DateTime ScheduledAt,
     TimeSpan Duration) : IRequest<Guid>;

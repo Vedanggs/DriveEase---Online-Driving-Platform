@@ -1,5 +1,6 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { SchoolService } from '../../../core/services/school.service';
@@ -10,7 +11,7 @@ import { EnrollmentDto } from '../../../core/models/enrollment.models';
 @Component({
   selector: 'app-schools-list',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule],
   templateUrl: './schools-list.html',
   styleUrl: './schools-list.scss'
 })
@@ -22,6 +23,19 @@ export class SchoolsListComponent implements OnInit {
   readonly myEnrollment = signal<EnrollmentDto | null>(null);
   readonly loading      = signal(true);
   readonly error        = signal<string | null>(null);
+  readonly searchQuery  = signal('');
+
+  readonly enrolledSchoolName = computed(() => {
+    const e = this.myEnrollment();
+    if (!e) return '';
+    return this.schools().find(s => s.id === e.drivingSchoolId)?.name ?? 'your school';
+  });
+
+  readonly filteredSchools = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    if (!q) return this.schools();
+    return this.schools().filter(s => s.name.toLowerCase().startsWith(q));
+  });
 
   ngOnInit() {
     forkJoin({
