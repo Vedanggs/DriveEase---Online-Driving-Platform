@@ -1,70 +1,129 @@
 <div class="page">
-  <h1 class="page-title">My Enrollment</h1>
+  <div class="page-header">
+    <h1>My Enrollment</h1>
+    <p>Your current driving school enrollment summary</p>
+  </div>
 
   @if (loading()) {
-    <div class="skeleton-card"></div>
+    <div class="skeleton-card">
+      <div class="sk-header">
+        <div class="sk-icon"></div>
+        <div class="sk-lines"><div class="sk-line sk-line--title"></div><div class="sk-line sk-line--sm"></div></div>
+      </div>
+      <div class="sk-grid">
+        @for (_ of [1,2,3,4,5,6]; track $index) { <div class="sk-line"></div> }
+      </div>
+    </div>
   } @else if (!enrollment()) {
     <div class="empty-state">
-      <span class="empty-icon">🎓</span>
-      <p class="empty-title">You are not enrolled yet</p>
-      <p class="empty-sub">Browse schools and enroll to start your driving journey.</p>
-      <a class="btn-browse" routerLink="/schools">Browse Schools</a>
+      <div class="empty-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+      </div>
+      <h3>No active enrollment</h3>
+      <p>Browse schools and enroll to start your driving journey.</p>
+      <a class="btn-primary" routerLink="/schools">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Browse Schools
+      </a>
     </div>
   } @else {
     <div class="enrollment-card">
+
+      <!-- Header -->
       <div class="card-header">
-        <span class="school-icon">🏫</span>
-        <div>
+        <div class="school-icon-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div class="header-text">
           <h2>{{ school()?.name ?? 'Your School' }}</h2>
           <span class="status-badge" [class.status-active]="enrollment()!.status === 'Active'">
+            <span class="status-dot"></span>
             {{ enrollment()!.status }}
           </span>
         </div>
       </div>
 
+      <!-- Enrollment ID -->
       <div class="id-section">
-        <p class="id-label">Enrollment ID</p>
+        <div class="id-label">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          Enrollment ID
+        </div>
         <div class="id-row">
           <code class="id-value">{{ enrollment()!.id }}</code>
           <button class="btn-copy" (click)="copyId()" [class.copied]="copied()">
-            {{ copied() ? '✓ Copied' : 'Copy' }}
+            @if (copied()) {
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              Copied
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              Copy
+            }
           </button>
         </div>
-        <p class="id-hint">Use this ID when booking a lesson under "Book a Lesson".</p>
+        <p class="id-hint">Reference this ID when contacting support or booking lessons.</p>
       </div>
 
+      <!-- Details -->
       <div class="details-grid">
         <div class="detail-item">
-          <span class="detail-label">School</span>
+          <span class="detail-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            School
+          </span>
           <span class="detail-value">{{ school()?.name ?? '—' }}</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">Address</span>
+          <span class="detail-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            Address
+          </span>
           <span class="detail-value">{{ school()?.address ?? '—' }}</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">Fee Paid</span>
-          <span class="detail-value">₹ {{ enrollment()!.fee.toLocaleString('en-IN') }}</span>
+          <span class="detail-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Fee Paid
+          </span>
+          <span class="detail-value fw-600">₹ {{ enrollment()!.fee.toLocaleString('en-IN') }}</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">Payment</span>
-          <span class="detail-value payment-badge" [class.paid]="enrollment()!.paymentStatus === 'Paid'">
-            {{ enrollment()!.paymentStatus }}
+          <span class="detail-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Payment
+          </span>
+          <span class="detail-value">
+            <span class="payment-badge" [class.paid]="enrollment()!.paymentStatus === 'Paid'">
+              {{ enrollment()!.paymentStatus }}
+            </span>
           </span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">Enrolled On</span>
+          <span class="detail-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Enrolled On
+          </span>
           <span class="detail-value">{{ formatDate(enrollment()!.enrolledAt) }}</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">Payment Confirmed</span>
+          <span class="detail-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Payment Confirmed
+          </span>
           <span class="detail-value">{{ formatDate(enrollment()!.paymentConfirmedAt) }}</span>
         </div>
       </div>
 
+      <!-- Actions -->
       <div class="card-actions">
-        <a class="btn-primary" routerLink="/lessons/book">Book a Lesson</a>
-        <a class="btn-secondary" [routerLink]="['/schools', enrollment()!.drivingSchoolId]">View School</a>
+        <a class="btn-primary" routerLink="/lessons/book">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Book a Lesson
+        </a>
+        <a class="btn-secondary" [routerLink]="['/schools', enrollment()!.drivingSchoolId]">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          View School
+        </a>
       </div>
     </div>
   }

@@ -16,8 +16,8 @@ namespace DriveEase.Api.IntegrationTests;
 ///   - 404 for unknown enrollment ID
 ///   - 200 for GET /me with a valid student token
 /// </summary>
+[Collection("IntegrationTests")]
 public sealed class EnrollmentEndpointTests(DriveEaseWebApplicationFactory factory, ITestOutputHelper output)
-    : IClassFixture<DriveEaseWebApplicationFactory>
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private readonly HttpClient _anon = factory.CreateClient();

@@ -14,8 +14,8 @@ namespace DriveEase.Api.IntegrationTests;
 ///
 /// Uses the real auth flow (register + login via AuthController) so JWT issuance is tested end-to-end.
 /// </summary>
+[Collection("IntegrationTests")]
 public sealed class HappyPathE2ETests(DriveEaseWebApplicationFactory factory, ITestOutputHelper output)
-    : IClassFixture<DriveEaseWebApplicationFactory>
 {
     private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
     private readonly HttpClient _anon = factory.CreateClient();

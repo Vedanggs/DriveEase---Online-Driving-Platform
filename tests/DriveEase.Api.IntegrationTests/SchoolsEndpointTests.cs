@@ -5,8 +5,8 @@ using Xunit;
 
 namespace DriveEase.Api.IntegrationTests;
 
+[Collection("IntegrationTests")]
 public sealed class SchoolsEndpointTests(DriveEaseWebApplicationFactory factory)
-    : IClassFixture<DriveEaseWebApplicationFactory>
 {
     private readonly HttpClient _client = factory.CreateClient();
 

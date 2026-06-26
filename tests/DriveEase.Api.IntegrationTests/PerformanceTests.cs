@@ -21,8 +21,8 @@ namespace DriveEase.Api.IntegrationTests;
 /// The warm-path p99 is invariant to the optimization (cache hit = same after both).
 /// The cold-path is faster after the optimization (fewer allocations + no private-ctor reflection).
 /// </summary>
+[Collection("IntegrationTests")]
 public sealed class PerformanceTests(DriveEaseWebApplicationFactory factory, ITestOutputHelper output)
-    : IClassFixture<DriveEaseWebApplicationFactory>
 {
     private readonly HttpClient _client = factory.CreateClient();
 

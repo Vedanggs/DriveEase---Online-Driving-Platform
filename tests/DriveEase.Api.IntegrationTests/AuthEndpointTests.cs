@@ -16,8 +16,8 @@ namespace DriveEase.Api.IntegrationTests;
 ///   - Login: happy path, wrong password, non-existent user
 ///   - Role-based access: 403 when Student policy is required but role claim is absent
 /// </summary>
+[Collection("IntegrationTests")]
 public sealed class AuthEndpointTests(DriveEaseWebApplicationFactory factory)
-    : IClassFixture<DriveEaseWebApplicationFactory>
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private readonly HttpClient _client = factory.CreateClient();

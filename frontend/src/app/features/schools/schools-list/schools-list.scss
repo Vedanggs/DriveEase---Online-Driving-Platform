@@ -1,241 +1,301 @@
 :host { display: block; }
 
-// ── Page shell ───────────────────────────────────────────────────────────────
 .page {
-  max-width: 1100px;
+  max-width: 1300px;
   margin: 0 auto;
-  padding: 2.5rem 1.5rem 4rem;
+  padding: 3rem 1.5rem 5rem;
 }
 
-// ── Header ───────────────────────────────────────────────────────────────────
-.page-header {
+// ── Hero ─────────────────────────────────────────────────────────────────────
+.page-hero {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
 
-  @media (max-width: 560px) { flex-direction: column; align-items: flex-start; }
+  @media (max-width: 640px) { flex-direction: column; align-items: flex-start; }
 }
 
-.page-header-text {
+.hero-text {
   h1 {
-    font-size: 1.75rem;
+    font-size: 2rem;
     font-weight: 700;
     color: var(--text);
-    letter-spacing: -0.02em;
-    margin-bottom: 0.25rem;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.375rem;
   }
-
   p {
-    font-size: 0.9rem;
+    font-size: 0.9375rem;
     color: var(--text-muted);
   }
 }
 
-// ── Enrollment notice ────────────────────────────────────────────────────────
-.enrollment-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.625rem;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: var(--radius-sm);
-  padding: 0.875rem 1.125rem;
-  margin-bottom: 1.5rem;
-
-  .notice-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
-
-  .notice-text {
-    font-size: 0.875rem;
-    color: #1e40af;
-    line-height: 1.55;
-
-    strong { color: #1e3a8a; }
-  }
-}
-
-// ── Search bar ────────────────────────────────────────────────────────────────
+// ── Search ────────────────────────────────────────────────────────────────────
 .search-bar {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 0.45rem 0.75rem;
-  width: 260px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 0.875rem;
+  height: 44px;
+  width: 280px;
   flex-shrink: 0;
   transition: border-color 0.15s, box-shadow 0.15s;
 
   &:focus-within {
-    border-color: #93c5fd;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+    border-color: var(--primary-border);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
   }
 
-  .search-icon { font-size: 0.8rem; opacity: 0.4; flex-shrink: 0; }
+  .search-icon { color: var(--text-faint); flex-shrink: 0; }
 
-  @media (max-width: 560px) { width: 100%; }
+  @media (max-width: 640px) { width: 100%; }
 }
 
 .search-input {
   flex: 1;
   border: none;
   outline: none;
-  font-size: 0.85rem;
-  color: #111827;
+  font-size: 0.875rem;
+  color: var(--text);
   background: transparent;
   min-width: 0;
+  font-family: inherit;
 
-  &::placeholder { color: #b0b7c3; }
+  &::placeholder { color: var(--text-faint); }
 }
 
 .search-clear {
   background: none;
   border: none;
-  font-size: 0.7rem;
-  color: #b0b7c3;
+  color: var(--text-faint);
   cursor: pointer;
   padding: 0;
-  line-height: 1;
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  transition: color 0.12s;
 
-  &:hover { color: #6b7280; }
+  &:hover { color: var(--text-muted); }
 }
 
-// ── Grid ─────────────────────────────────────────────────────────────────────
+// ── Enrollment notice ─────────────────────────────────────────────────────────
+.enrollment-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: var(--primary-light);
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.25rem;
+  margin-bottom: 2rem;
+  color: #1e40af;
+
+  svg { flex-shrink: 0; margin-top: 2px; color: var(--primary); }
+
+  .notice-text {
+    font-size: 0.875rem;
+    line-height: 1.55;
+    strong { color: #1e3a8a; }
+  }
+}
+
+// ── Grid ──────────────────────────────────────────────────────────────────────
 .schools-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
-// ── Card base ────────────────────────────────────────────────────────────────
+// ── Card base ─────────────────────────────────────────────────────────────────
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 1.5rem;
+  border-radius: var(--radius);
+  padding: 1.75rem;
   text-decoration: none;
   color: var(--text);
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0;
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
-
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
   opacity: 0;
   animation: fadein 0.4s ease forwards;
 
-  @for $i from 1 through 12 {
-    &:nth-child(#{$i}) { animation-delay: #{($i - 1) * 0.055}s; }
+  @for $i from 1 through 18 {
+    &:nth-child(#{$i}) { animation-delay: #{($i - 1) * 0.04}s; }
   }
 
   &:hover {
     box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     border-color: var(--border-hover);
   }
-
-  h3 {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.01em;
-    margin-bottom: 0.1rem;
-  }
-
-  .card-address,
-  .card-email {
-    font-size: 0.82rem;
-    color: var(--text-muted);
-    line-height: 1.45;
-  }
-
-  .card-cta {
-    display: block;
-    margin-top: auto;
-    padding-top: 1rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--accent);
-  }
 }
 
-// ── Enrolled state ───────────────────────────────────────────────────────────
-.card-enrolled {
-  border-color: var(--success-border);
-  background: linear-gradient(160deg, var(--success-light) 0%, var(--surface) 55%);
-
-  &:hover {
-    border-color: #34d399;
-    box-shadow: 0 4px 16px rgba(5, 150, 105, 0.1);
-  }
-
-  .enrolled-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--success);
-    margin-bottom: 0.4rem;
-
-    &::before {
-      content: '';
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--success);
-      flex-shrink: 0;
-    }
-  }
-
-  .card-cta { color: var(--success); }
+// ── Card icon ─────────────────────────────────────────────────────────────────
+.card-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
 }
 
-// ── Locked state ─────────────────────────────────────────────────────────────
-.card-locked {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 1.5rem;
+.card-icon-enrolled {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.card-icon-locked {
+  background: #F8FAFC;
+  color: var(--text-faint);
+}
+
+// ── Card badge ────────────────────────────────────────────────────────────────
+.card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  margin-bottom: 0.75rem;
+  align-self: flex-start;
+}
+
+.badge-enrolled {
+  background: var(--success-light);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+}
+
+// ── Card content ──────────────────────────────────────────────────────────────
+.card h3 {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin-bottom: 0.75rem;
+  line-height: 1.3;
+}
+
+.card-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  opacity: 0.45;
-  cursor: not-allowed;
+  gap: 0.375rem;
+  flex: 1;
 
-  animation: fadein 0.4s ease forwards;
+  span {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    line-height: 1.45;
 
-  @for $i from 1 through 12 {
-    &:nth-child(#{$i}) { animation-delay: #{($i - 1) * 0.055}s; }
-  }
-
-  h3 { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; }
-
-  .card-address,
-  .card-email { font-size: 0.82rem; color: var(--text-muted); line-height: 1.45; }
-
-  .locked-label {
-    display: block;
-    margin-top: auto;
-    padding-top: 1rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--text-faint);
+    svg { flex-shrink: 0; margin-top: 1px; }
   }
 }
 
-// ── Skeleton ─────────────────────────────────────────────────────────────────
-.skeleton {
-  height: 152px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(90deg, var(--border) 25%, #f3f4f6 50%, var(--border) 75%);
+.card-footer {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.card-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--primary);
+
+  svg { transition: transform 0.15s; }
+}
+
+.card:hover .card-cta svg { transform: translateX(3px); }
+
+.card-cta--green { color: var(--success); }
+
+.card-locked-label {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+// ── Enrolled card ─────────────────────────────────────────────────────────────
+.card-enrolled {
+  border-color: var(--success-border);
+  background: linear-gradient(160deg, var(--success-light) 0%, var(--surface) 60%);
+
+  &:hover {
+    border-color: #86efac;
+    box-shadow: 0 6px 24px rgba(22, 163, 74, 0.12);
+  }
+}
+
+// ── Locked card ───────────────────────────────────────────────────────────────
+.card-locked {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  animation: fadein 0.4s ease forwards;
+
+  @for $i from 1 through 18 {
+    &:nth-child(#{$i}) { animation-delay: #{($i - 1) * 0.04}s; }
+  }
+
+  h3 { font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 0.75rem; }
+}
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+.skeleton-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sk-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--border);
+  animation: shimmer 1.4s infinite;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+}
+
+.sk-line {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
-  pointer-events: none;
+
+  &--title { height: 18px; width: 70%; }
+  &--short { width: 45%; }
 }
 
 @keyframes shimmer {
@@ -245,21 +305,21 @@
 
 // ── Entrance animation ────────────────────────────────────────────────────────
 @keyframes fadein {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 .empty-state {
   text-align: center;
-  padding: 4rem 1rem;
+  padding: 5rem 1rem;
 
-  .empty-icon { font-size: 2.5rem; display: block; margin-bottom: 0.875rem; }
-  p { color: var(--text-muted); font-size: 0.95rem; }
+  .empty-icon { color: var(--text-faint); display: block; margin: 0 auto 1.25rem; }
+  h3 { font-size: 1.125rem; font-weight: 600; color: var(--text); margin-bottom: 0.5rem; }
+  p  { color: var(--text-muted); font-size: 0.9375rem; }
 }
 
-// ── Reduced motion ────────────────────────────────────────────────────────────
 @media (prefers-reduced-motion: reduce) {
   .card, .card-locked { animation: none; opacity: 1; }
-  .skeleton           { animation: shimmer 1.4s infinite; }
+  .sk-icon, .sk-line  { animation: none; }
 }

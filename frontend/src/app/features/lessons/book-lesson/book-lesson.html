@@ -1,14 +1,21 @@
 <div class="page">
-  <a class="back-link" routerLink="/lessons">← My lessons</a>
+  <a class="back-link" routerLink="/lessons">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    My lessons
+  </a>
 
   @if (!enrollmentIdLoaded()) {
     <div class="warn-card">
-      <span class="warn-icon">⏳</span>
+      <div class="warn-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
       <div><strong>Loading your enrollment…</strong></div>
     </div>
   } @else if (!hasEnrollment) {
     <div class="warn-card">
-      <span class="warn-icon">⚠️</span>
+      <div class="warn-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
       <div>
         <strong>No active enrollment</strong>
         <p>You need to enroll in a driving school before booking a lesson.</p>
@@ -17,7 +24,9 @@
     </div>
   } @else if (success()) {
     <div class="success-card">
-      <span class="success-icon">✅</span>
+      <div class="success-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
       <h2>Lesson booked!</h2>
       <p>Redirecting to your lessons…</p>
     </div>
@@ -25,7 +34,13 @@
     <!-- Lesson package counter -->
     <div class="package-banner" [class.package-banner--full]="atLimit()">
       <div class="package-info">
-        <span class="package-icon">{{ atLimit() ? '🔒' : '📚' }}</span>
+        <div class="package-icon-wrap">
+          @if (atLimit()) {
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          }
+        </div>
         <div>
           <p class="package-title">
             @if (atLimit()) {
@@ -51,7 +66,9 @@
 
     @if (atLimit()) {
       <div class="limit-card">
-        <span class="limit-icon">🎓</span>
+        <div class="limit-icon-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        </div>
         <div>
           <strong>All 5 lessons completed</strong>
           <p>The instructor has confirmed all 5 lessons in your current enrollment. Your enrollment will close shortly. You can then re-enroll for more lessons.</p>
@@ -63,7 +80,10 @@
         <p class="subtitle">Schedule your next driving lesson with your instructor.</p>
 
         @if (error()) {
-          <div class="alert-error" role="alert">{{ error() }}</div>
+          <div class="alert-error" role="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ error() }}
+          </div>
         }
 
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
