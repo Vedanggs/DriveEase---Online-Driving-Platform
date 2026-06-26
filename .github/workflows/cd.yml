@@ -25,13 +25,21 @@ jobs:
       - name: Install azd
         uses: azure/setup-azd@v2
 
-      # 3. Login to Azure using the service principal stored in GitHub Secrets
+      # 3. Login to Azure CLI using the service principal stored in GitHub Secrets
       - name: Azure login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # 4. Restore the azd environment (points azd at your existing dev resources)
+      # 4. Login to azd (separate from Azure CLI — azd needs its own auth)
+      - name: Login to azd
+        run: |
+          azd auth login \
+            --client-id $(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientId) \
+            --client-secret $(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientSecret) \
+            --tenant-id $(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .tenantId)
+
+      # 5. Restore the azd environment (points azd at your existing dev resources)
       - name: Set up azd environment
         run: |
           azd env new dev --no-prompt || true
