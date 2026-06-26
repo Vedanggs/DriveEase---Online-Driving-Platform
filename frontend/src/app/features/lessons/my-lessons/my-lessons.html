@@ -1,60 +1,155 @@
 <div class="page">
+
+  <!-- Header -->
   <div class="page-header">
     <div>
       <h1>My Lessons</h1>
       <p>Your scheduled and completed driving lessons</p>
     </div>
-    @if (hasEnrollment()) {
+    @if (hasActiveEnrollment()) {
       <a class="btn-book" routerLink="/lessons/book">+ Book a lesson</a>
     }
   </div>
 
-  @if (loading()) {
-    <div class="lessons-list">
-      @for (_ of [1,2,3]; track $index) {
-        <div class="lesson-card skeleton"></div>
+  <!-- Tab nav -->
+  <div class="tab-nav">
+    <button class="tab-btn" [class.active]="activeTab() === 'current'" (click)="activeTab.set('current')">
+      My Lessons
+      @if (currentLessons().length > 0) {
+        <span class="tab-count">{{ currentLessons().length }}</span>
       }
-    </div>
-  } @else if (error()) {
-    <div class="empty-state">
-      <span class="empty-icon">⚠️</span>
-      <p>{{ error() }}</p>
-    </div>
-  } @else if (lessons().length === 0) {
-    <div class="empty-state">
-      <span class="empty-icon">🚗</span>
-      <h3>No lessons yet</h3>
-      @if (hasEnrollment()) {
-        <p>You're enrolled — book your first lesson now.</p>
-        <a class="btn-book" routerLink="/lessons/book">Book a lesson</a>
-      } @else {
-        <p>Enroll in a driving school first to book lessons.</p>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'history'" (click)="activeTab.set('history')">
+      History
+      @if (historyGroups().length > 0) {
+        <span class="tab-count">{{ historyGroups().length }} school{{ historyGroups().length !== 1 ? 's' : '' }}</span>
+      }
+    </button>
+  </div>
+
+  <!-- ── MY LESSONS tab ────────────────────────────────── -->
+  @if (activeTab() === 'current') {
+    @if (loading()) {
+      <div class="lessons-list">
+        @for (_ of [1,2,3]; track $index) {
+          <div class="lesson-card skeleton"></div>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="empty-state">
+        <span class="empty-icon">⚠️</span>
+        <p>{{ error() }}</p>
+      </div>
+    } @else if (!hasActiveEnrollment()) {
+      <div class="empty-state">
+        <span class="empty-icon">🏫</span>
+        <h3>Not enrolled anywhere</h3>
+        <p>Enroll in a driving school to start booking lessons.</p>
         <a class="btn-book" routerLink="/schools">Browse schools</a>
-      }
-    </div>
-  } @else {
-    <div class="lessons-list">
-      @for (lesson of lessons(); track lesson.id; let i = $index) {
-        <div class="lesson-card">
-          <div class="lesson-date">
-            <span class="date-day">{{ lesson.scheduledAt | date:'d' }}</span>
-            <span class="date-month">{{ lesson.scheduledAt | date:'MMM' }}</span>
+      </div>
+    } @else if (currentLessons().length === 0) {
+      <div class="empty-state">
+        <span class="empty-icon">🚗</span>
+        <h3>No lessons yet</h3>
+        <p>You're enrolled — book your first lesson to get started.</p>
+        <a class="btn-book" routerLink="/lessons/book">Book a lesson</a>
+      </div>
+    } @else {
+      <div class="lessons-list">
+        @for (lesson of currentLessons(); track lesson.id; let i = $index) {
+          <div class="lesson-card">
+            <div class="lesson-date">
+              <span class="date-day">{{ lesson.scheduledAt | date:'d' }}</span>
+              <span class="date-month">{{ lesson.scheduledAt | date:'MMM' }}</span>
+            </div>
+            <div class="lesson-info">
+              <div class="lesson-number-label">{{ ordinal(i + 1) }} Driving Lesson</div>
+              <div class="lesson-time">{{ lesson.scheduledAt | date:'h:mm a' }}</div>
+              <div class="lesson-duration">{{ formatDuration(lesson.duration) }}</div>
+              @if (lesson.instructorName) {
+                <div class="lesson-instructor">with {{ lesson.instructorName }}</div>
+              }
+              @if (lesson.notes) {
+                <div class="lesson-notes">
+                  <span class="feedback-label">Instructor feedback:</span> {{ lesson.notes }}
+                </div>
+              }
+              @if (isOverdue(lesson)) {
+                <div class="lesson-overdue-hint">
+                  ⏰ Time passed — awaiting instructor confirmation
+                </div>
+              }
+            </div>
+            <span class="lesson-status" [class]="statusClass(lesson.status)">
+              {{ lesson.status }}
+            </span>
           </div>
-          <div class="lesson-info">
-            <div class="lesson-number-label">{{ ordinal(lessons().length - i) }} Driving Lesson</div>
-            <div class="lesson-time">{{ lesson.scheduledAt | date:'h:mm a' }}</div>
-            <div class="lesson-duration">{{ formatDuration(lesson.duration) }}</div>
-            @if (lesson.notes) {
-              <div class="lesson-notes">
-                <span class="feedback-label">Instructor feedback:</span> {{ lesson.notes }}
-              </div>
-            }
-          </div>
-          <span class="lesson-status" [class]="statusClass(lesson.status)">
-            {{ lesson.status }}
-          </span>
-        </div>
-      }
-    </div>
+        }
+      </div>
+    }
   }
+
+  <!-- ── HISTORY tab ────────────────────────────────────── -->
+  @if (activeTab() === 'history') {
+    @if (loading()) {
+      <div class="lessons-list">
+        @for (_ of [1,2]; track $index) {
+          <div class="lesson-card skeleton"></div>
+        }
+      </div>
+    } @else if (historyGroups().length === 0) {
+      <div class="empty-state">
+        <span class="empty-icon">📚</span>
+        <h3>No history yet</h3>
+        <p>Completed lessons from past enrollments will appear here.</p>
+      </div>
+    } @else {
+      <div class="history-list">
+        @for (group of historyGroups(); track group.enrollmentId) {
+          <div class="history-group">
+            <div class="history-group-header">
+              <div class="history-school-avatar">{{ group.schoolName.charAt(0) }}</div>
+              <div class="history-school-info">
+                <span class="history-school-name">{{ group.schoolName }}</span>
+                <span class="history-school-meta">
+                  Enrolled {{ formatEnrolledAt(group.enrolledAt) }} ·
+                  {{ completedCount(group) }} of {{ group.lessons.length }} lesson{{ group.lessons.length !== 1 ? 's' : '' }} completed
+                </span>
+              </div>
+              @if (isGroupFullyCompleted(group)) {
+                <span class="history-done-badge">✓ Completed</span>
+              } @else {
+                <span class="history-done-badge history-done-badge--partial">In progress</span>
+              }
+            </div>
+            <div class="history-lessons">
+              @for (lesson of group.lessons; track lesson.id; let i = $index) {
+                <div class="history-lesson-row">
+                  <div class="history-lesson-num">{{ i + 1 }}</div>
+                  <div class="history-lesson-date-block">
+                    <span class="h-date-day">{{ lesson.scheduledAt | date:'d' }}</span>
+                    <span class="h-date-month">{{ lesson.scheduledAt | date:'MMM' }}</span>
+                  </div>
+                  <div class="history-lesson-detail">
+                    <span class="history-lesson-time">{{ lesson.scheduledAt | date:'h:mm a' }} · {{ formatDuration(lesson.duration) }}</span>
+                    @if (lesson.notes) {
+                      <p class="history-feedback">{{ lesson.notes }}</p>
+                    } @else {
+                      <p class="history-no-feedback">No feedback given</p>
+                    }
+                  </div>
+                  @if (lesson.status.toLowerCase() === 'scheduled' && isOverdue(lesson)) {
+                    <span class="lesson-status status-overdue">Overdue</span>
+                  } @else {
+                    <span class="lesson-status" [class]="statusClass(lesson.status)">{{ lesson.status }}</span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
 </div>

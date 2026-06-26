@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://your-driveease-api.azurecontainerapps.io'
+  apiUrl: 'https://driveease-dev-api-3fggyyel.azurewebsites.net'
 };

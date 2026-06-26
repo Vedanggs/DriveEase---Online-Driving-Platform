@@ -5,6 +5,8 @@ using DriveEase.Lessons.Application.Commands.CompleteLesson;
 using DriveEase.Lessons.Application.Queries.GetInstructorLessons;
 using DriveEase.Lessons.Application.Queries.GetLesson;
 using DriveEase.Lessons.Application.Queries.GetStudentLessons;
+using DriveEase.Lessons.Application.Queries.GetInstructorBookedSlots;
+using DriveEase.Lessons.Application.Queries.GetEnrollmentLessonCount;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -43,6 +45,24 @@ public sealed class LessonsController(ISender sender) : ControllerBase
     {
         var lessons = await sender.Send(new GetInstructorLessonsQuery(instructorId), cancellationToken);
         return Ok(lessons);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("enrollment/{enrollmentId:guid}/count")]
+    public async Task<IActionResult> GetEnrollmentLessonCount(Guid enrollmentId, CancellationToken cancellationToken)
+    {
+        var count = await sender.Send(new GetEnrollmentLessonCountQuery(enrollmentId), cancellationToken);
+        return Ok(new { count });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("instructor/{instructorId:guid}/booked-slots")]
+    public async Task<IActionResult> GetBookedSlots(Guid instructorId, [FromQuery] string date, CancellationToken cancellationToken)
+    {
+        if (!DateTime.TryParse(date, out var parsedDate))
+            return BadRequest("Invalid date format. Use YYYY-MM-DD.");
+        var slots = await sender.Send(new GetInstructorBookedSlotsQuery(instructorId, parsedDate.ToUniversalTime()), cancellationToken);
+        return Ok(slots);
     }
 
     [AllowAnonymous]

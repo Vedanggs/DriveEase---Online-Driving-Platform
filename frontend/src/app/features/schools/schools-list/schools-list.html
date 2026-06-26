@@ -1,7 +1,21 @@
 <div class="page">
   <div class="page-header">
-    <h1>Driving Schools</h1>
-    <p>Browse and enroll in a certified driving school</p>
+    <div class="page-header-text">
+      <h1>Driving Schools</h1>
+      <p>Browse and enroll in a certified driving school</p>
+    </div>
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search schools…"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)" />
+      @if (searchQuery()) {
+        <button class="search-clear" (click)="searchQuery.set('')">✕</button>
+      }
+    </div>
   </div>
 
   @if (loading()) {
@@ -21,37 +35,51 @@
       <p>No schools registered yet.</p>
     </div>
   } @else {
+
     @if (myEnrollment()) {
       <div class="enrollment-notice">
-        You're enrolled — only your school is accessible right now.
+        <span class="notice-icon">📍</span>
+        <div class="notice-text">
+          <strong>You're currently training at {{ enrolledSchoolName() }}.</strong>
+          Finish your 5 lessons here, then re-enroll at any school to continue your journey.
+        </div>
       </div>
     }
-    <div class="schools-grid">
-      @for (school of schools(); track school.id) {
-        @if (isEnrolledHere(school.id)) {
-          <a class="card card-enrolled" [routerLink]="['/schools', school.id]">
-            <div class="enrolled-badge">Enrolled</div>
-            <h3>{{ school.name }}</h3>
-            <p class="card-address">{{ school.address }}</p>
-            <p class="card-email">{{ school.contactEmail }}</p>
-            <span class="card-cta">View school →</span>
-          </a>
-        } @else if (isEnrolledElsewhere(school.id)) {
-          <div class="card card-locked">
-            <h3>{{ school.name }}</h3>
-            <p class="card-address">{{ school.address }}</p>
-            <p class="card-email">{{ school.contactEmail }}</p>
-            <span class="locked-label">Not available</span>
-          </div>
-        } @else {
-          <a class="card" [routerLink]="['/schools', school.id]">
-            <h3>{{ school.name }}</h3>
-            <p class="card-address">{{ school.address }}</p>
-            <p class="card-email">{{ school.contactEmail }}</p>
-            <span class="card-cta">View school →</span>
-          </a>
+
+    @if (filteredSchools().length === 0) {
+      <div class="empty-state">
+        <span class="empty-icon">🔍</span>
+        <p>No schools match "<strong>{{ searchQuery() }}</strong>"</p>
+      </div>
+    } @else {
+      <div class="schools-grid">
+        @for (school of filteredSchools(); track school.id) {
+          @if (isEnrolledHere(school.id)) {
+            <a class="card card-enrolled" [routerLink]="['/schools', school.id]">
+              <div class="enrolled-badge">Enrolled</div>
+              <h3>{{ school.name }}</h3>
+              <p class="card-address">{{ school.address }}</p>
+              <p class="card-email">{{ school.contactEmail }}</p>
+              <span class="card-cta">View school →</span>
+            </a>
+          } @else if (isEnrolledElsewhere(school.id)) {
+            <div class="card card-locked">
+              <h3>{{ school.name }}</h3>
+              <p class="card-address">{{ school.address }}</p>
+              <p class="card-email">{{ school.contactEmail }}</p>
+              <span class="locked-label">Not available</span>
+            </div>
+          } @else {
+            <a class="card" [routerLink]="['/schools', school.id]">
+              <h3>{{ school.name }}</h3>
+              <p class="card-address">{{ school.address }}</p>
+              <p class="card-email">{{ school.contactEmail }}</p>
+              <span class="card-cta">View school →</span>
+            </a>
+          }
         }
-      }
-    </div>
+      </div>
+    }
+
   }
 </div>

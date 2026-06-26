@@ -11,6 +11,7 @@ public sealed class Lesson : AggregateRoot<Guid>
     public Guid StudentId { get; private set; }
     public string StudentName { get; private set; } = string.Empty;
     public Guid InstructorId { get; private set; }
+    public string InstructorName { get; private set; } = string.Empty;
     public DateTime ScheduledAt { get; private set; }
     public TimeSpan Duration { get; private set; }
     public LessonStatus Status { get; private set; }
@@ -19,7 +20,7 @@ public sealed class Lesson : AggregateRoot<Guid>
 
     private Lesson() { }
 
-    public static Lesson Book(Guid enrollmentId, Guid studentId, string studentName, Guid instructorId, DateTime scheduledAt, TimeSpan duration)
+    public static Lesson Book(Guid enrollmentId, Guid studentId, string studentName, Guid instructorId, string instructorName, DateTime scheduledAt, TimeSpan duration)
     {
         if (scheduledAt <= DateTime.UtcNow)
             throw new InvalidOperationException("Lesson must be scheduled in the future.");
@@ -31,6 +32,7 @@ public sealed class Lesson : AggregateRoot<Guid>
             StudentId = studentId,
             StudentName = studentName,
             InstructorId = instructorId,
+            InstructorName = instructorName,
             ScheduledAt = scheduledAt,
             Duration = duration,
             Status = LessonStatus.Scheduled
@@ -40,7 +42,7 @@ public sealed class Lesson : AggregateRoot<Guid>
         return lesson;
     }
 
-    public void Complete(string? notes = null)
+    public void Complete(string? notes = null, bool isLastInPackage = false)
     {
         if (Status != LessonStatus.Scheduled)
             throw new InvalidOperationException($"Cannot complete a lesson in status '{Status}'.");
@@ -50,6 +52,9 @@ public sealed class Lesson : AggregateRoot<Guid>
         CompletedAt = DateTime.UtcNow;
 
         RaiseDomainEvent(LessonCompletedEvent.Create(Id, EnrollmentId, StudentId, InstructorId));
+
+        if (isLastInPackage)
+            RaiseDomainEvent(LessonPackageCompletedEvent.Create(EnrollmentId, StudentId));
     }
 
     public void Cancel()

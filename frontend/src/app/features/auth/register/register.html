@@ -48,10 +48,14 @@
           }
         </div>
 
-        <div class="field">
+        <div class="field" [class.has-error]="form.controls.phoneNumber.invalid && form.controls.phoneNumber.touched">
           <label for="phone">Phone Number <span class="opt">(optional)</span></label>
           <input id="phone" type="tel" formControlName="phoneNumber" autocomplete="tel"
-            placeholder="+91 98765 43210" />
+            placeholder="+91 98765 43210"
+            [attr.aria-invalid]="form.controls.phoneNumber.invalid && form.controls.phoneNumber.touched" />
+          @if (form.controls.phoneNumber.invalid && form.controls.phoneNumber.touched) {
+            <span class="field-error" role="alert">Enter a valid phone number (digits only) or leave it empty</span>
+          }
         </div>
 
         <div class="field">

@@ -15,11 +15,13 @@ public sealed class GetStudentLessonsHandler(ILessonRepository repository)
             .Select(l => new StudentLessonDto(
                 l.Id,
                 l.EnrollmentId,
+                l.InstructorId,
                 l.ScheduledAt,
                 l.Duration,
                 l.Status.ToString(),
                 l.Notes,
-                l.CompletedAt))
+                l.CompletedAt,
+                l.InstructorName))
             .ToList();
     }
 }

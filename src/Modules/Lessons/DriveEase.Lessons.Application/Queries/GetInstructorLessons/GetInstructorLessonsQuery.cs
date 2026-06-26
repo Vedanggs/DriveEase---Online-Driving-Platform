@@ -4,6 +4,7 @@ namespace DriveEase.Lessons.Application.Queries.GetInstructorLessons;
 
 public sealed record InstructorLessonDto(
     Guid Id,
+    Guid EnrollmentId,
     Guid StudentId,
     string StudentName,
     DateTime ScheduledAt,

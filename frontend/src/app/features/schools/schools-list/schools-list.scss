@@ -9,8 +9,16 @@
 
 // ── Header ───────────────────────────────────────────────────────────────────
 .page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 2rem;
 
+  @media (max-width: 560px) { flex-direction: column; align-items: flex-start; }
+}
+
+.page-header-text {
   h1 {
     font-size: 1.75rem;
     font-weight: 700;
@@ -27,14 +35,72 @@
 
 // ── Enrollment notice ────────────────────────────────────────────────────────
 .enrollment-notice {
-  background: var(--accent-light);
-  border: 1px solid var(--accent-border);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
   border-radius: var(--radius-sm);
-  padding: 0.7rem 1rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--accent);
+  padding: 0.875rem 1.125rem;
   margin-bottom: 1.5rem;
+
+  .notice-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+  .notice-text {
+    font-size: 0.875rem;
+    color: #1e40af;
+    line-height: 1.55;
+
+    strong { color: #1e3a8a; }
+  }
+}
+
+// ── Search bar ────────────────────────────────────────────────────────────────
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  width: 260px;
+  flex-shrink: 0;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:focus-within {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+  }
+
+  .search-icon { font-size: 0.8rem; opacity: 0.4; flex-shrink: 0; }
+
+  @media (max-width: 560px) { width: 100%; }
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.85rem;
+  color: #111827;
+  background: transparent;
+  min-width: 0;
+
+  &::placeholder { color: #b0b7c3; }
+}
+
+.search-clear {
+  background: none;
+  border: none;
+  font-size: 0.7rem;
+  color: #b0b7c3;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+
+  &:hover { color: #6b7280; }
 }
 
 // ── Grid ─────────────────────────────────────────────────────────────────────

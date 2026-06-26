@@ -1,5 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { InstructorService } from '../../../core/services/instructor.service';
 import { InstructorNotificationDto } from '../../../core/models/notification.models';
@@ -11,16 +10,24 @@ interface InstructorSession {
   schoolName: string;
 }
 
+interface FeedbackGroup {
+  studentId: string;
+  studentName: string;
+  lessons: InstructorLessonDto[];
+}
+
 @Component({
   selector: 'app-instructor-dashboard',
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule],
   templateUrl: './instructor-dashboard.html',
   styleUrl: './instructor-dashboard.scss'
 })
-export class InstructorDashboardComponent implements OnInit {
+export class InstructorDashboardComponent implements OnInit, OnDestroy {
   private readonly instructorService: InstructorService;
   private session: InstructorSession | null = null;
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly localReadIds = new Set<string>();
 
   readonly instructorName = signal('');
   readonly schoolName     = signal('');
@@ -28,14 +35,29 @@ export class InstructorDashboardComponent implements OnInit {
   readonly notifications  = signal<InstructorNotificationDto[]>([]);
   readonly lessons        = signal<InstructorLessonDto[]>([]);
 
-  readonly completingId   = signal<string | null>(null);
+  readonly activeTab = signal<'overview' | 'upcoming' | 'notifications' | 'history'>('overview');
+
   readonly feedbackLessonId = signal<string | null>(null);
   feedbackText = '';
-  readonly submitting     = signal(false);
+  readonly submitting = signal(false);
 
-  readonly unreadCount   = computed(() => this.notifications().filter(n => !n.isRead).length);
+  readonly unreadCount      = computed(() => this.notifications().filter(n => !n.isRead).length);
   readonly upcomingLessons  = computed(() => this.lessons().filter(l => l.status === 'Scheduled'));
   readonly completedLessons = computed(() => this.lessons().filter(l => l.status === 'Completed'));
+
+  readonly feedbackGroups = computed<FeedbackGroup[]>(() => {
+    const map = new Map<string, FeedbackGroup>();
+    for (const l of this.completedLessons()) {
+      if (!map.has(l.studentId)) {
+        map.set(l.studentId, { studentId: l.studentId, studentName: l.studentName || 'Student', lessons: [] });
+      }
+      map.get(l.studentId)!.lessons.push(l);
+    }
+    for (const g of map.values()) {
+      g.lessons.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+    }
+    return Array.from(map.values());
+  });
 
   readonly greeting = computed(() => {
     const h = new Date().getHours();
@@ -58,13 +80,22 @@ export class InstructorDashboardComponent implements OnInit {
 
     this.loadNotifications();
     this.loadLessons();
+
+    // Poll for new notifications every 30 seconds
+    this.pollTimer = setInterval(() => this.loadNotifications(), 30_000);
+  }
+
+  ngOnDestroy() {
+    if (this.pollTimer !== null) clearInterval(this.pollTimer);
   }
 
   private loadNotifications() {
     if (!this.session) return;
     this.instructorService.getNotifications(this.session.instructorId).subscribe({
-      next: data => this.notifications.set(data),
-      error: () => this.notifications.set([])
+      next: data => this.notifications.set(
+        data.map(n => ({ ...n, isRead: n.isRead || this.localReadIds.has(n.id) }))
+      ),
+      error: () => {}
     });
   }
 
@@ -77,14 +108,20 @@ export class InstructorDashboardComponent implements OnInit {
   }
 
   markRead(id: string) {
+    if (this.localReadIds.has(id)) return;
+    this.localReadIds.add(id);
     this.notifications.update(list =>
       list.map(n => n.id === id ? { ...n, isRead: true } : n)
     );
+    this.instructorService.markNotificationRead(id).subscribe({ error: () => {} });
   }
 
   formatScheduledAt(iso: string): string {
-    const d = new Date(iso);
-    return d.toLocaleString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const utc = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
+    return new Date(utc).toLocaleString('en-IN', {
+      weekday: 'short', day: '2-digit', month: 'short',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    });
   }
 
   formatDuration(duration: string): string {
@@ -96,17 +133,31 @@ export class InstructorDashboardComponent implements OnInit {
     return `${h} hr ${m} min`;
   }
 
-  markComplete(lesson: InstructorLessonDto) {
-    this.completingId.set(lesson.id);
-    this.instructorService.completeLesson(lesson.id).subscribe({
-      next: () => {
-        this.lessons.update(list =>
-          list.map(l => l.id === lesson.id ? { ...l, status: 'Completed', completedAt: new Date().toISOString() } : l)
-        );
-        this.completingId.set(null);
-      },
-      error: () => this.completingId.set(null)
-    });
+  formatNotifTime(iso: string): string {
+    const utc = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
+    const d = new Date(utc);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60_000);
+    if (diffMin < 1) return 'Just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHrs = Math.floor(diffMin / 60);
+    if (diffHrs < 24) return `Today at ${d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString())
+      return `Yesterday at ${d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+    return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+  }
+
+  /** Returns how many lessons (scheduled or completed) exist for a given enrollmentId */
+  lessonCountForEnrollment(enrollmentId: string): number {
+    return this.lessons().filter(l => l.enrollmentId === enrollmentId && l.status !== 'Cancelled').length;
+  }
+
+  /** Returns how many lessons are completed for a given enrollmentId */
+  completedCountForEnrollment(enrollmentId: string): number {
+    return this.lessons().filter(l => l.enrollmentId === enrollmentId && l.status === 'Completed').length;
   }
 
   openFeedback(lessonId: string) {
@@ -136,6 +187,16 @@ export class InstructorDashboardComponent implements OnInit {
       },
       error: () => this.submitting.set(false)
     });
+  }
+
+  get todayDate(): string {
+    return new Date().toLocaleDateString('en-IN', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+  }
+
+  avatarInitial(name: string): string {
+    return name.charAt(0).toUpperCase();
   }
 
   logout() {

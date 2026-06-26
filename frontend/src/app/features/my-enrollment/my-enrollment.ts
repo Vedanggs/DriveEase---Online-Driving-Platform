@@ -37,8 +37,10 @@ export class MyEnrollmentComponent implements OnInit {
       this.enrollment.set(enrollment);
       this.school.set(school);
       this.loading.set(false);
-      // Keep school ID in sync for book-lesson instructor dropdown
-      if (enrollment) localStorage.setItem('de_school_id', enrollment.drivingSchoolId);
+      if (enrollment) {
+        localStorage.setItem('de_school_id', enrollment.drivingSchoolId);
+        localStorage.setItem('de_enrollment_id', enrollment.id);
+      }
     });
   }
 
@@ -53,8 +55,12 @@ export class MyEnrollmentComponent implements OnInit {
 
   formatDate(dateStr: string | null): string {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: 'numeric', month: 'long', year: 'numeric'
+    // Backend returns UTC datetimes without 'Z'; appending it tells JS to treat as UTC
+    // so toLocaleString correctly converts to the browser's local timezone (e.g. IST)
+    const utc = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z';
+    return new Date(utc).toLocaleString('en-IN', {
+      day: 'numeric', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true
     });
   }
 }

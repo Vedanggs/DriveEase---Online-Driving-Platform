@@ -20,4 +20,13 @@ public sealed class InstructorNotificationRepository(NotificationsDbContext dbCo
             .Where(n => n.InstructorId == instructorId)
             .OrderByDescending(n => n.CreatedAt)
             .ToListAsync(cancellationToken);
+
+    public async Task MarkReadAsync(Guid notificationId, CancellationToken cancellationToken = default)
+    {
+        var notification = await dbContext.InstructorNotifications
+            .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
+        if (notification is null) return;
+        notification.MarkRead();
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
 }

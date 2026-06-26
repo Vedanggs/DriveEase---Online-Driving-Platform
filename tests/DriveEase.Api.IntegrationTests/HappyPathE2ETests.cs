@@ -73,8 +73,9 @@ public sealed class HappyPathE2ETests(DriveEaseWebApplicationFactory factory, IT
         // ── Step 6: Get instructors for the school ────────────────────────────
         var instructors = await GetJsonAsync<JsonElement[]>(_anon, $"/api/v1/schools/{schoolId}/instructors");
         instructors.Should().NotBeNullOrEmpty();
-        var instructorId = instructors![0].GetProperty("id").GetString()!;
-        output.WriteLine($"Assigned instructor {instructorId}");
+        var instructorId   = instructors![0].GetProperty("id").GetString()!;
+        var instructorName = instructors![0].GetProperty("fullName").GetString()!;
+        output.WriteLine($"Assigned instructor {instructorId} ({instructorName})");
 
         // ── Step 7: Assign instructor to enrollment ───────────────────────────
         var assignResp = await PostJsonAsync<object?>(authClient,
@@ -89,12 +90,13 @@ public sealed class HappyPathE2ETests(DriveEaseWebApplicationFactory factory, IT
             "/api/v1/lessons",
             new
             {
-                EnrollmentId = enrollmentId,
-                StudentId    = login.StudentId,
-                StudentName  = fullName,
-                InstructorId = instructorId,
-                ScheduledAt  = scheduledAt,
-                Duration     = "01:00:00",
+                EnrollmentId   = enrollmentId,
+                StudentId      = login.StudentId,
+                StudentName    = fullName,
+                InstructorId   = instructorId,
+                InstructorName = instructorName,
+                ScheduledAt    = scheduledAt,
+                Duration       = "01:00:00",
             });
 
         lesson.Should().NotBeNull();

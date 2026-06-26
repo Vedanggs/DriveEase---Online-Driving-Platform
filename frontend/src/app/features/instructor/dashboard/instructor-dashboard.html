@@ -1,138 +1,288 @@
 <div class="dashboard">
 
-  <!-- Top bar -->
-  <header class="topbar">
-    <div class="topbar-left">
-      <span class="brand-pip"></span>
-      <span class="brand-name">DriveEase</span>
-      <span class="role-chip">Instructor</span>
+  <!-- Navbar -->
+  <nav class="inav">
+    <div class="inav-brand">
+      <span class="inav-brand-icon">🚗</span>
+      DriveEase
+      <span class="inav-role-chip">Instructor</span>
     </div>
-    <div class="topbar-right">
-      <span class="school-label">{{ schoolName() }}</span>
-      <span class="instructor-name">{{ instructorName() }}</span>
-      <button class="btn-logout" (click)="logout()">Sign out</button>
-    </div>
-  </header>
 
-  <!-- Main content -->
+    <div class="inav-tabs">
+      <button class="inav-tab" [class.active]="activeTab() === 'overview'" (click)="activeTab.set('overview')">
+        Overview
+      </button>
+      <button class="inav-tab" [class.active]="activeTab() === 'upcoming'" (click)="activeTab.set('upcoming')">
+        Upcoming Lessons
+        @if (upcomingLessons().length > 0) {
+          <span class="inav-badge">{{ upcomingLessons().length }}</span>
+        }
+      </button>
+      <button class="inav-tab" [class.active]="activeTab() === 'notifications'" (click)="activeTab.set('notifications')">
+        Notifications
+        @if (unreadCount() > 0) {
+          <span class="inav-badge inav-badge--alert">{{ unreadCount() }}</span>
+        }
+      </button>
+      <button class="inav-tab" [class.active]="activeTab() === 'history'" (click)="activeTab.set('history')">
+        Feedback History
+        @if (feedbackGroups().length > 0) {
+          <span class="inav-badge">{{ feedbackGroups().length }}</span>
+        }
+      </button>
+    </div>
+
+    <div class="inav-right">
+      <span class="inav-school">🏫 {{ schoolName() }}</span>
+      <span class="inav-divider"></span>
+      <span class="inav-user">{{ instructorName() }}</span>
+      <button class="inav-logout" (click)="logout()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- Tab content -->
   <main class="main">
-    <div class="page-header">
-      <div>
-        <h1>{{ greeting() }}, {{ instructorName() }}.</h1>
-        <p class="page-sub">Here's what's waiting for you today.</p>
+
+    <!-- ── OVERVIEW ─────────────────────────────────────── -->
+    @if (activeTab() === 'overview') {
+      <div class="tab-page">
+
+        <!-- Hero banner -->
+        <div class="overview-hero">
+          <div class="overview-hero-content">
+            <p class="hero-eyebrow">{{ schoolName() }}</p>
+            <h1 class="hero-greeting">{{ greeting() }}, {{ instructorName() }}.</h1>
+            <p class="hero-date">{{ todayDate }}</p>
+          </div>
+          <div class="hero-decoration"></div>
+        </div>
+
+        <!-- Stats grid -->
+        <div class="stats-row">
+          <div class="stat-card" (click)="activeTab.set('upcoming')" role="button" tabindex="0">
+            <span class="stat-label">Upcoming Lessons</span>
+            <span class="stat-value">{{ upcomingLessons().length }}</span>
+            <span class="stat-link">View →</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Completed</span>
+            <span class="stat-value">{{ completedLessons().length }}</span>
+          </div>
+          <div class="stat-card" (click)="activeTab.set('notifications')" role="button" tabindex="0">
+            <span class="stat-label">Unread</span>
+            <span class="stat-value">{{ unreadCount() }}</span>
+            @if (unreadCount() > 0) { <span class="stat-link">View →</span> }
+          </div>
+          <div class="stat-card" (click)="activeTab.set('history')" role="button" tabindex="0">
+            <span class="stat-label">Students Trained</span>
+            <span class="stat-value">{{ feedbackGroups().length }}</span>
+            @if (feedbackGroups().length > 0) { <span class="stat-link">View →</span> }
+          </div>
+        </div>
+
+        <!-- Alert: pending lessons -->
+        @if (upcomingLessons().length > 0) {
+          <div class="overview-alert">
+            <span class="alert-pip"></span>
+            <span><strong>{{ upcomingLessons().length }} lesson{{ upcomingLessons().length !== 1 ? 's' : '' }}</strong> waiting for your feedback.</span>
+            <button class="alert-btn" (click)="activeTab.set('upcoming')">Go to Upcoming →</button>
+          </div>
+        }
+
+        <!-- Recent notifications preview -->
+        @if (notifications().length > 0) {
+          <div class="overview-panel">
+            <div class="overview-panel-header">
+              <span class="overview-panel-title">Recent Notifications</span>
+              <button class="overview-panel-link" (click)="activeTab.set('notifications')">
+                View all {{ notifications().length }} →
+              </button>
+            </div>
+            @for (n of notifications().slice(0, 3); track n.id) {
+              <div class="overview-notif-row" [class.unread]="!n.isRead" (click)="markRead(n.id); activeTab.set('notifications')">
+                <span class="overview-notif-dot" [class.dot-active]="!n.isRead"></span>
+                <div class="overview-notif-body">
+                  <p class="overview-notif-text"><strong>{{ n.studentName }}</strong> {{ n.detail }}</p>
+                </div>
+                <span class="overview-notif-time">{{ formatNotifTime(n.createdAt) }}</span>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Next upcoming lesson preview -->
+        @if (upcomingLessons().length > 0) {
+          <div class="overview-panel">
+            <div class="overview-panel-header">
+              <span class="overview-panel-title">Next Lesson</span>
+              <button class="overview-panel-link" (click)="activeTab.set('upcoming')">All upcoming →</button>
+            </div>
+            <div class="overview-next-lesson">
+              <div class="next-lesson-meta">
+                <span class="next-lesson-date">{{ formatScheduledAt(upcomingLessons()[0].scheduledAt) }}</span>
+                <span class="next-lesson-dur">{{ formatDuration(upcomingLessons()[0].duration) }}</span>
+                <span class="next-lesson-chip">Lesson {{ completedCountForEnrollment(upcomingLessons()[0].enrollmentId) + 1 }}/5</span>
+              </div>
+              <p class="next-lesson-student">{{ upcomingLessons()[0].studentName || 'Student' }}</p>
+              <button class="next-lesson-btn" (click)="openFeedback(upcomingLessons()[0].id); activeTab.set('upcoming')">
+                ✍ Give Feedback & Complete
+              </button>
+            </div>
+          </div>
+        }
+
       </div>
-      @if (unreadCount() > 0) {
-        <div class="unread-badge">{{ unreadCount() }} new</div>
-      }
-    </div>
-
-    <!-- Notifications -->
-    <section class="section">
-      <h2 class="section-title">Notifications</h2>
-
-      @if (notifications().length === 0) {
-        <div class="empty">
-          <span class="empty-icon">📭</span>
-          <p>No notifications yet.</p>
-        </div>
-      } @else {
-        <div class="notif-list">
-          @for (n of notifications(); track n.id) {
-            <div class="notif-card" [class.unread]="!n.isRead" (click)="markRead(n.id)">
-              <div class="notif-icon">
-                {{ n.type === 'enrollment' ? '🎓' : '📅' }}
-              </div>
-              <div class="notif-body">
-                <p class="notif-text">
-                  <strong>{{ n.studentName }}</strong> {{ n.detail }}
-                </p>
-                <span class="notif-time">{{ n.createdAt | date:'MMM d · h:mm a' }}</span>
-              </div>
-              @if (!n.isRead) {
-                <span class="unread-dot"></span>
-              }
-            </div>
-          }
-        </div>
-      }
-    </section>
-
-    <!-- Upcoming lessons -->
-    <section class="section">
-      <h2 class="section-title">Upcoming Lessons</h2>
-
-      @if (upcomingLessons().length === 0) {
-        <div class="empty">
-          <span class="empty-icon">📋</span>
-          <p>No upcoming lessons scheduled.</p>
-        </div>
-      } @else {
-        <div class="lesson-list">
-          @for (lesson of upcomingLessons(); track lesson.id) {
-            <div class="lesson-card">
-              <div class="lesson-meta">
-                <span class="lesson-date">{{ formatScheduledAt(lesson.scheduledAt) }}</span>
-                <span class="lesson-duration">{{ formatDuration(lesson.duration) }}</span>
-              </div>
-              <p class="lesson-student">{{ lesson.studentName || 'Student' }}</p>
-
-              @if (feedbackLessonId() === lesson.id) {
-                <div class="feedback-form">
-                  <textarea
-                    class="feedback-input"
-                    [(ngModel)]="feedbackText"
-                    placeholder="Write your lesson notes and feedback here..."
-                    rows="3">
-                  </textarea>
-                  <div class="feedback-actions">
-                    <button
-                      class="btn-submit-feedback"
-                      (click)="submitFeedback(lesson)"
-                      [disabled]="submitting() || !feedbackText.trim()">
-                      {{ submitting() ? 'Saving...' : 'Submit & Mark Complete' }}
-                    </button>
-                    <button class="btn-cancel" (click)="cancelFeedback()">Cancel</button>
-                  </div>
-                </div>
-              } @else {
-                <div class="lesson-actions">
-                  <button
-                    class="btn-complete"
-                    (click)="markComplete(lesson)"
-                    [disabled]="completingId() === lesson.id">
-                    {{ completingId() === lesson.id ? 'Marking...' : 'Mark Complete' }}
-                  </button>
-                  <button class="btn-feedback" (click)="openFeedback(lesson.id)">Give Feedback</button>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      }
-    </section>
-
-    <!-- Completed lessons -->
-    @if (completedLessons().length > 0) {
-      <section class="section">
-        <h2 class="section-title">Completed Lessons</h2>
-        <div class="lesson-list">
-          @for (lesson of completedLessons(); track lesson.id; let i = $index) {
-            <div class="lesson-card lesson-card--done">
-              <div class="lesson-meta">
-                <span class="lesson-number">Lesson {{ i + 1 }}</span>
-                <span class="lesson-date">{{ formatScheduledAt(lesson.scheduledAt) }}</span>
-                <span class="lesson-duration">{{ formatDuration(lesson.duration) }}</span>
-              </div>
-              <p class="lesson-student">{{ lesson.studentName || 'Student' }}</p>
-              @if (lesson.notes) {
-                <p class="lesson-feedback">💬 {{ lesson.notes }}</p>
-              }
-              <span class="lesson-badge-done">✓ Completed</span>
-            </div>
-          }
-        </div>
-      </section>
     }
-  </main>
 
+    <!-- ── UPCOMING LESSONS ────────────────────────────── -->
+    @if (activeTab() === 'upcoming') {
+      <div class="tab-page">
+        <div class="tab-page-header">
+          <h2>Upcoming Lessons</h2>
+          <p>Give feedback and mark each lesson complete.</p>
+        </div>
+
+        @if (upcomingLessons().length === 0) {
+          <div class="empty">
+            <span class="empty-icon">📋</span>
+            <p>No upcoming lessons scheduled.</p>
+          </div>
+        } @else {
+          <div class="lesson-list">
+            @for (lesson of upcomingLessons(); track lesson.id) {
+              <div class="lesson-card">
+                <div class="lesson-card-header">
+                  <div class="lesson-meta">
+                    <span class="lesson-date">{{ formatScheduledAt(lesson.scheduledAt) }}</span>
+                    <span class="lesson-duration">{{ formatDuration(lesson.duration) }}</span>
+                  </div>
+                  <span class="lesson-progress-chip">
+                    Lesson {{ completedCountForEnrollment(lesson.enrollmentId) + 1 }}/5
+                  </span>
+                </div>
+                <p class="lesson-student">{{ lesson.studentName || 'Student' }}</p>
+
+                @if (feedbackLessonId() === lesson.id) {
+                  <div class="feedback-form">
+                    <p class="feedback-hint">Write your lesson feedback before completing.</p>
+                    <textarea
+                      class="feedback-input"
+                      [(ngModel)]="feedbackText"
+                      placeholder="E.g. Great progress on lane changes. Work on mirror checks next time…"
+                      rows="3">
+                    </textarea>
+                    <div class="feedback-actions">
+                      <button
+                        class="btn-submit-feedback"
+                        (click)="submitFeedback(lesson)"
+                        [disabled]="submitting() || !feedbackText.trim()">
+                        {{ submitting() ? 'Saving…' : 'Submit Feedback & Complete' }}
+                      </button>
+                      <button class="btn-cancel" (click)="cancelFeedback()">Cancel</button>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="lesson-actions">
+                    <button class="btn-complete-lesson" (click)="openFeedback(lesson.id)">
+                      ✍ Give Feedback & Complete
+                    </button>
+                    <p class="feedback-required-hint">Feedback required to complete</p>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── NOTIFICATIONS ──────────────────────────────── -->
+    @if (activeTab() === 'notifications') {
+      <div class="tab-page">
+        <div class="tab-page-header">
+          <h2>Notifications</h2>
+          <p>{{ unreadCount() > 0 ? unreadCount() + ' unread' : 'All caught up' }} · Click a notification to mark it as read.</p>
+        </div>
+
+        @if (notifications().length === 0) {
+          <div class="empty">
+            <span class="empty-icon">📭</span>
+            <p>No notifications yet.</p>
+          </div>
+        } @else {
+          <div class="notif-panel">
+            @for (n of notifications(); track n.id) {
+              <div class="notif-card" [class.unread]="!n.isRead" (click)="markRead(n.id)">
+                <div class="notif-icon-wrap" [class.notif-icon-wrap--lesson]="n.type === 'lesson'">
+                  {{ n.type === 'enrollment' ? '🎓' : '📅' }}
+                </div>
+                <div class="notif-body">
+                  <p class="notif-text">
+                    <strong>{{ n.studentName }}</strong> {{ n.detail }}
+                  </p>
+                  <span class="notif-time">{{ formatNotifTime(n.createdAt) }}</span>
+                </div>
+                @if (!n.isRead) {
+                  <span class="unread-dot"></span>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── FEEDBACK HISTORY ───────────────────────────── -->
+    @if (activeTab() === 'history') {
+      <div class="tab-page">
+        <div class="tab-page-header">
+          <h2>Feedback History</h2>
+          <p>All students you've trained, grouped by enrollment.</p>
+        </div>
+
+        @if (feedbackGroups().length === 0) {
+          <div class="empty">
+            <span class="empty-icon">📚</span>
+            <p>No completed lessons yet.</p>
+          </div>
+        } @else {
+          <div class="history-list">
+            @for (group of feedbackGroups(); track group.studentId) {
+              <div class="history-card">
+                <div class="history-card-header">
+                  <div class="history-avatar">{{ avatarInitial(group.studentName) }}</div>
+                  <div class="history-student-info">
+                    <span class="history-student-name">{{ group.studentName }}</span>
+                    <span class="history-lesson-count">{{ group.lessons.length }} / 5 lessons completed</span>
+                  </div>
+                  @if (group.lessons.length >= 5) {
+                    <span class="history-package-badge">✓ Package done</span>
+                  }
+                </div>
+                <div class="history-lessons">
+                  @for (lesson of group.lessons; track lesson.id; let i = $index) {
+                    <div class="history-lesson-row">
+                      <div class="history-lesson-num">{{ i + 1 }}</div>
+                      <div class="history-lesson-detail">
+                        <div class="history-lesson-meta">
+                          <span class="history-lesson-date">{{ formatScheduledAt(lesson.scheduledAt) }}</span>
+                          <span class="history-lesson-dur">{{ formatDuration(lesson.duration) }}</span>
+                        </div>
+                        @if (lesson.notes) {
+                          <p class="history-lesson-feedback">{{ lesson.notes }}</p>
+                        } @else {
+                          <p class="history-no-feedback">No feedback given</p>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+  </main>
 </div>

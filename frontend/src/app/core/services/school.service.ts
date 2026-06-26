@@ -14,4 +14,10 @@ export class SchoolService {
   getById(id: string) {
     return this.http.get<SchoolDetail>(`${environment.apiUrl}/api/v1/schools/${id}`);
   }
+
+  getInstructors(schoolId: string) {
+    return this.http.get<{ id: string; fullName: string; licenseNumber: string }[]>(
+      `${environment.apiUrl}/api/v1/schools/${schoolId}/instructors`
+    );
+  }
 }
