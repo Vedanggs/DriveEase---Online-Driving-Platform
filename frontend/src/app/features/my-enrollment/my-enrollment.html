@@ -43,6 +43,33 @@
         </div>
       </div>
 
+      <!-- Lesson Progress -->
+      <div class="progress-section">
+        <div class="progress-header">
+          <span class="progress-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Lesson Progress
+          </span>
+          <span class="progress-count">
+            <strong>{{ completedLessons() }}</strong> of <strong>{{ totalLessons }}</strong> completed
+          </span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="(completedLessons() / totalLessons) * 100"></div>
+        </div>
+        <div class="progress-steps">
+          @for (n of lessonDots; track n) {
+            <div class="progress-step" [class.done]="n <= completedLessons()">
+              @if (n <= completedLessons()) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              } @else {
+                {{ n }}
+              }
+            </div>
+          }
+        </div>
+      </div>
+
       <!-- Enrollment ID -->
       <div class="id-section">
         <div class="id-label">

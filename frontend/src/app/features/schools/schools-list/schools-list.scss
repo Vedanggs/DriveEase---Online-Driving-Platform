@@ -136,28 +136,27 @@
   }
 }
 
-// ── Card icon ─────────────────────────────────────────────────────────────────
-.card-icon-wrap {
-  width: 44px;
-  height: 44px;
+// ── School avatar ─────────────────────────────────────────────────────────────
+.school-avatar {
+  width: 56px;
+  height: 56px;
   border-radius: var(--radius-sm);
-  background: var(--primary-light);
-  color: var(--primary);
+  background: hsl(var(--hue, 220), 65%, 92%);
+  color: hsl(var(--hue, 220), 55%, 32%);
+  font-size: 1.375rem;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 1rem;
   flex-shrink: 0;
-}
+  letter-spacing: -0.02em;
+  user-select: none;
 
-.card-icon-enrolled {
-  background: var(--success-light);
-  color: var(--success);
-}
-
-.card-icon-locked {
-  background: #F8FAFC;
-  color: var(--text-faint);
+  &--locked {
+    filter: grayscale(1);
+    opacity: 0.6;
+  }
 }
 
 // ── Card badge ────────────────────────────────────────────────────────────────
@@ -179,6 +178,62 @@
   background: var(--success-light);
   color: var(--success);
   border: 1px solid var(--success-border);
+}
+
+// ── Card rating ───────────────────────────────────────────────────────────────
+.card-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+
+  svg { flex-shrink: 0; }
+}
+
+.rating-value {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.rating-sep {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.rating-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+// ── Card chips ────────────────────────────────────────────────────────────────
+.card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 0;
+  margin-top: auto;
+  padding-top: 0.875rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.25rem 0.625rem;
+
+  svg { flex-shrink: 0; }
+
+  &--muted {
+    color: var(--text-faint);
+    background: transparent;
+  }
 }
 
 // ── Card content ──────────────────────────────────────────────────────────────
@@ -277,14 +332,28 @@
   gap: 0.75rem;
 }
 
-.sk-icon {
-  width: 44px;
-  height: 44px;
+.sk-avatar {
+  width: 56px;
+  height: 56px;
   border-radius: var(--radius-sm);
-  background: var(--border);
-  animation: shimmer 1.4s infinite;
   background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
   background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+.sk-chips {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.sk-chip {
+  height: 24px;
+  width: 72px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
 }
 
 .sk-line {
@@ -314,7 +383,17 @@
   text-align: center;
   padding: 5rem 1rem;
 
-  .empty-icon { color: var(--text-faint); display: block; margin: 0 auto 1.25rem; }
+  .empty-icon-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius);
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+  }
   h3 { font-size: 1.125rem; font-weight: 600; color: var(--text); margin-bottom: 0.5rem; }
   p  { color: var(--text-muted); font-size: 0.9375rem; }
 }

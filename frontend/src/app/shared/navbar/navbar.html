@@ -20,7 +20,7 @@
       </a>
     </div>
     <div class="navbar-user">
-      <div class="user-avatar">{{ auth.fullName().charAt(0).toUpperCase() }}</div>
+      <div class="user-avatar">{{ (auth.fullName() ?? '?').charAt(0).toUpperCase() }}</div>
       <span class="user-name">{{ auth.fullName() }}</span>
       <button class="btn-logout" (click)="logout()">Sign out</button>
     </div>

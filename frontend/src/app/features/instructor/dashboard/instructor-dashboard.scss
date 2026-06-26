@@ -261,6 +261,7 @@
 
 .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .stat-value { font-size: 2rem; font-weight: 700; color: var(--text); letter-spacing: -0.04em; line-height: 1; margin: 0.125rem 0; }
+.stat-sub   { font-size: 0.72rem; color: var(--text-faint); margin-top: 2px; }
 
 .stat-link {
   display: inline-flex;

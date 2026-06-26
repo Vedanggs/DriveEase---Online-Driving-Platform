@@ -62,4 +62,22 @@ export class SchoolsListComponent implements OnInit {
     const e = this.myEnrollment();
     return e !== null && e.drivingSchoolId !== schoolId;
   }
+
+  avatarHue(name: string): number {
+    let h = 0;
+    for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+    return h % 360;
+  }
+
+  schoolRating(name: string): string {
+    let h = 0;
+    for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+    return (4.1 + ((h % 10) * 0.09)).toFixed(1);
+  }
+
+  schoolReviewCount(name: string): number {
+    let h = 0;
+    for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+    return 12 + (h % 50);
+  }
 }

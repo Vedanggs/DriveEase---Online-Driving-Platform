@@ -74,6 +74,9 @@
             </div>
             <span class="stat-label">Upcoming</span>
             <span class="stat-value">{{ upcomingLessons().length }}</span>
+            <span class="stat-sub">
+              @if (upcomingLessons().length === 0) { all clear } @else { lessons scheduled }
+            </span>
             <span class="stat-link">
               View
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
@@ -85,6 +88,7 @@
             </div>
             <span class="stat-label">Completed</span>
             <span class="stat-value">{{ completedLessons().length }}</span>
+            <span class="stat-sub">total lessons</span>
           </div>
           <div class="stat-card" (click)="activeTab.set('notifications')" role="button" tabindex="0">
             <div class="stat-icon-wrap" [class.stat-icon-wrap--orange]="unreadCount() > 0" [class.stat-icon-wrap--blue]="unreadCount() === 0">
@@ -92,6 +96,9 @@
             </div>
             <span class="stat-label">Unread</span>
             <span class="stat-value">{{ unreadCount() }}</span>
+            <span class="stat-sub">
+              @if (unreadCount() === 0) { all caught up } @else { new alerts }
+            </span>
             @if (unreadCount() > 0) {
               <span class="stat-link">
                 View
@@ -105,6 +112,7 @@
             </div>
             <span class="stat-label">Students</span>
             <span class="stat-value">{{ feedbackGroups().length }}</span>
+            <span class="stat-sub">unique learners</span>
             @if (feedbackGroups().length > 0) {
               <span class="stat-link">
                 View

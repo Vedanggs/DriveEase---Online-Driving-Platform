@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DecimalPipe } from '@angular/common';
 import { EnrollmentService } from '../../../core/services/enrollment.service';
 import { SchoolService } from '../../../core/services/school.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -10,7 +9,7 @@ import { SchoolDetail } from '../../../core/models/school.models';
 @Component({
   selector: 'app-enroll',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, DecimalPipe],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './enroll.html',
   styleUrl: './enroll.scss'
 })
