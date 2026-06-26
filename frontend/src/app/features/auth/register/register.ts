@@ -33,7 +33,7 @@ export class RegisterComponent implements AfterViewInit, OnDestroy {
   readonly form = this.fb.group({
     fullName:    ['', [Validators.required, Validators.maxLength(200)]],
     email:       ['', [Validators.required, Validators.email, Validators.maxLength(200)]],
-    phoneNumber: ['', [Validators.pattern(/^\+?[0-9\s\-]{7,30}$/)]],
+    phoneNumber: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
     dobDay:      ['', Validators.required],
     dobMonth:    ['', Validators.required],
     dobYear:     ['', Validators.required],
