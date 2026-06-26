@@ -9,9 +9,7 @@ public static class DatabaseSeeder
         using var scope = services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<SchoolsDbContext>();
 
-        if (await context.Schools.AnyAsync()) return;
-
-        var schools = new[]
+        var desiredSchools = new[]
         {
             DrivingSchool.Register("Pune Road Masters",            "12 MG Road, Shivajinagar, Pune - 411005",              "admin@puneroadmasters.com"),
             DrivingSchool.Register("Mumbai Drive Academy",         "45 Linking Road, Bandra West, Mumbai - 400050",        "admin@mumbaidriveacademy.com"),
@@ -32,13 +30,16 @@ public static class DatabaseSeeder
             DrivingSchool.Register("Ratnagiri Coastal Drive",      "3 Beach Road, Ratnagiri - 415612",                     "admin@ratnagiricoastaldrive.com"),
         };
 
-        await context.Schools.AddRangeAsync(schools);
+        // Add only schools whose name isn't already in the database
+        var existingNames = (await context.Schools.Select(s => s.Name).ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var newSchools    = desiredSchools.Where(s => !existingNames.Contains(s.Name)).ToArray();
+
+        if (newSchools.Length == 0) return;
+
+        await context.Schools.AddRangeAsync(newSchools);
         await context.SaveChangesAsync();
 
-        // 3 instructors per school
-        var instructors = new List<Instructor>();
-        var licenseCounter = 1001;
-
+        // Seed 3 instructors for each newly added school only
         var instructorNames = new[]
         {
             ("Rajesh Kumar",    "Arjun Sharma",   "Priya Desai"),
@@ -60,15 +61,20 @@ public static class DatabaseSeeder
             ("Ramesh Gavhane",  "Swati Bendre",   "Tushar Kolhe"),
         };
 
-        for (var i = 0; i < schools.Length; i++)
-        {
-            var (name1, name2, name3) = instructorNames[i];
-            var schoolId = schools[i].Id;
-            var state = "MH";
+        var instructors    = new List<Instructor>();
+        var licenseCounter = 1001 + (existingNames.Count * 3);
 
-            instructors.Add(Instructor.Create(schoolId, name1, $"{state}-{licenseCounter++:0000}"));
-            instructors.Add(Instructor.Create(schoolId, name2, $"{state}-{licenseCounter++:0000}"));
-            instructors.Add(Instructor.Create(schoolId, name3, $"{state}-{licenseCounter++:0000}"));
+        // Map desiredSchools index → instructorNames index so names stay consistent
+        for (var i = 0; i < desiredSchools.Length; i++)
+        {
+            if (!newSchools.Contains(desiredSchools[i])) continue;
+
+            var (name1, name2, name3) = instructorNames[i];
+            var schoolId = desiredSchools[i].Id;
+
+            instructors.Add(Instructor.Create(schoolId, name1, $"MH-{licenseCounter++:0000}"));
+            instructors.Add(Instructor.Create(schoolId, name2, $"MH-{licenseCounter++:0000}"));
+            instructors.Add(Instructor.Create(schoolId, name3, $"MH-{licenseCounter++:0000}"));
         }
 
         await context.Instructors.AddRangeAsync(instructors);
