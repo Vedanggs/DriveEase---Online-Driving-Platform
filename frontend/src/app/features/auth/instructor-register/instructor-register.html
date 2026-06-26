@@ -48,9 +48,18 @@
         <div class="field" [class.has-error]="form.controls.licenseNumber.invalid && form.controls.licenseNumber.touched">
           <label for="licenseNumber">License Number</label>
           <input id="licenseNumber" type="text" formControlName="licenseNumber"
-            placeholder="MH-1234567890" />
+            placeholder="MH-12AB4566"
+            autocomplete="off"
+            (input)="onLicenseInput($event)" />
+          <span class="field-hint">Format: XX-00XX0000 &nbsp;·&nbsp; e.g. MH-12AB4566</span>
           @if (form.controls.licenseNumber.invalid && form.controls.licenseNumber.touched) {
-            <span class="field-error" role="alert">Enter your license number</span>
+            <span class="field-error" role="alert">
+              @if (form.controls.licenseNumber.errors?.['required']) {
+                License number is required
+              } @else {
+                Must be in format MH-12AB4566 (state · RTO no. · series · number)
+              }
+            </span>
           }
         </div>
 

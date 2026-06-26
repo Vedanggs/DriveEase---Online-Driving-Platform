@@ -4,6 +4,13 @@ import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 
+// Format: MH-12AB4566  (state 2-alpha)(dash)(2-digit RTO)(2-alpha)(4-digit serial)
+const LICENSE_RE = /^[A-Z]{2}-\d{2}[A-Z]{2}\d{4}$/;
+function licenseFormat(control: AbstractControl): ValidationErrors | null {
+  const val: string = (control.value ?? '').toUpperCase();
+  return LICENSE_RE.test(val) ? null : { licenseFormat: true };
+}
+
 function strongPassword(control: AbstractControl): ValidationErrors | null {
   const val: string = control.value ?? '';
   const errors: string[] = [];
@@ -40,7 +47,7 @@ export class InstructorRegisterComponent implements OnInit, AfterViewInit, OnDes
   readonly form = this.fb.group({
     fullName:      ['', [Validators.required, Validators.minLength(2)]],
     email:         ['', [Validators.required, Validators.email]],
-    licenseNumber: ['', [Validators.required, Validators.minLength(3)]],
+    licenseNumber: ['', [Validators.required, licenseFormat]],
     schoolId:      ['', Validators.required],
     password:      ['', [Validators.required, Validators.maxLength(100), strongPassword]]
   });
@@ -64,6 +71,18 @@ export class InstructorRegisterComponent implements OnInit, AfterViewInit, OnDes
   ngOnDestroy() {
     if (this.rafId !== null) cancelAnimationFrame(this.rafId);
     if (this.resizeHandler) window.removeEventListener('resize', this.resizeHandler);
+  }
+
+  onLicenseInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const upper = input.value.toUpperCase();
+    if (input.value !== upper) {
+      const pos = input.selectionStart ?? upper.length;
+      input.value = upper;
+      input.setSelectionRange(pos, pos);
+    }
+    this.form.controls.licenseNumber.setValue(upper, { emitEvent: false });
+    this.form.controls.licenseNumber.updateValueAndValidity();
   }
 
   submit() {
