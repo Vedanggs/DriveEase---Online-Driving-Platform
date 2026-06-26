@@ -27,5 +27,5 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
           app_location: frontend
-          output_location: dist/driveease-frontend
+          output_location: dist/driveease-frontend/browser
           app_build_command: npm run build -- --configuration production
