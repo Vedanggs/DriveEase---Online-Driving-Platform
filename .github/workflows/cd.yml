@@ -45,6 +45,7 @@ jobs:
           azd env new dev --no-prompt || true
           azd env set AZURE_SUBSCRIPTION_ID ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           azd env set AZURE_LOCATION centralindia
+          azd env set AZURE_RESOURCE_GROUP rg-driveease-dev
         env:
           AZURE_ENV_NAME: dev
 
