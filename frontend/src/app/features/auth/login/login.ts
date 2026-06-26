@@ -181,6 +181,10 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
   openDemoModal()  { this.showDemoModal.set(true);  this.demoSearch.set(''); }
   closeDemoModal() { this.showDemoModal.set(false); }
 
+  fillStudentDemo() {
+    this.form.setValue({ email: 'test@gmail.com', password: 'Test@123' });
+  }
+
   copyToClipboard(text: string, key: string) {
     navigator.clipboard.writeText(text).then(() => {
       this.copiedKey.set(key);
