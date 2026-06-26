@@ -341,6 +341,10 @@ app.Use(async (ctx, next) =>
         if (!ctx.Database.IsSqlServer()) return;
         try
         {
+            // BATCH 1 — create the history table.
+            // Must be a separate ExecuteSqlRawAsync call from the INSERT below:
+            // SQL Server parses the entire batch before running it, so SELECT FROM a
+            // table that was just CREATE'd in the same batch fails at parse time.
             await ctx.Database.ExecuteSqlRawAsync($"""
                 IF OBJECT_ID(N'[{schema}].[__EFMigrationsHistory]') IS NULL
                 BEGIN
@@ -349,7 +353,12 @@ app.Use(async (ctx, next) =>
                         [ProductVersion] nvarchar(32) NOT NULL,
                         CONSTRAINT [PK_{schema}_MigHist] PRIMARY KEY ([MigrationId])
                     )
-                END;
+                END
+                """);
+
+            // BATCH 2 — seed InitialCreate. History table now exists so SQL Server
+            // can parse the SELECT against it without failing at compile time.
+            await ctx.Database.ExecuteSqlRawAsync($"""
                 IF OBJECT_ID(N'[{schema}].[{table}]') IS NOT NULL
                 AND NOT EXISTS (
                     SELECT 1 FROM [{schema}].[__EFMigrationsHistory]
@@ -358,7 +367,7 @@ app.Use(async (ctx, next) =>
                 BEGIN
                     INSERT INTO [{schema}].[__EFMigrationsHistory] ([MigrationId], [ProductVersion])
                     VALUES (N'{migrationId}', N'10.0.0')
-                END;
+                END
                 """);
         }
         catch (Exception ex)
@@ -389,6 +398,45 @@ app.Use(async (ctx, next) =>
     await MigrateAsync<EnrollmentsDbContext>("Enrollments", "enrollments",   "Enrollments", "20260623162636_InitialCreate");
     await MigrateAsync<LessonsDbContext>("Lessons",         "lessons",       "Lessons",     "20260623162708_InitialCreate");
     await MigrateAsync<NotificationsDbContext>("Notifications", "notifications", "Notifications", "20260623162735_InitialCreate");
+
+    // Direct column patch — guaranteed safety net for columns that EF migrations may
+    // have failed to add (e.g. when EnsureCreated was used for initial deployment).
+    // Idempotent: IF NOT EXISTS means this is safe to run on every startup.
+    if (sqlResolved)
+    {
+        var patchCtx = sp.GetRequiredService<EnrollmentsDbContext>();
+        try
+        {
+            await patchCtx.Database.ExecuteSqlRawAsync("""
+                IF OBJECT_ID(N'[enrollments].[OutboxMessages]') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[enrollments].[OutboxMessages]') AND name = N'DeadLettered')
+                        ALTER TABLE [enrollments].[OutboxMessages] ADD [DeadLettered] BIT NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[enrollments].[OutboxMessages]') AND name = N'RetryCount')
+                        ALTER TABLE [enrollments].[OutboxMessages] ADD [RetryCount] INT NOT NULL DEFAULT 0;
+                END;
+                IF OBJECT_ID(N'[lessons].[Lessons]') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[lessons].[Lessons]') AND name = N'StudentName')
+                        ALTER TABLE [lessons].[Lessons] ADD [StudentName] nvarchar(max) NOT NULL DEFAULT N'Unknown';
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[lessons].[Lessons]') AND name = N'InstructorName')
+                        ALTER TABLE [lessons].[Lessons] ADD [InstructorName] nvarchar(max) NOT NULL DEFAULT N'';
+                END;
+                IF OBJECT_ID(N'[lessons].[OutboxMessages]') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[lessons].[OutboxMessages]') AND name = N'DeadLettered')
+                        ALTER TABLE [lessons].[OutboxMessages] ADD [DeadLettered] BIT NOT NULL DEFAULT 0;
+                    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[lessons].[OutboxMessages]') AND name = N'RetryCount')
+                        ALTER TABLE [lessons].[OutboxMessages] ADD [RetryCount] INT NOT NULL DEFAULT 0;
+                END;
+                """);
+            startupLogger.LogInformation("Direct column patch completed successfully");
+        }
+        catch (Exception ex)
+        {
+            startupLogger.LogWarning(ex, "Direct column patch failed — some columns may still be missing");
+        }
+    }
 }
 
 await DatabaseSeeder.SeedAsync(app.Services);
