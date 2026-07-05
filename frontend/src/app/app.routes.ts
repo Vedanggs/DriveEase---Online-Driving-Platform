@@ -8,11 +8,17 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login/login').then(m => m.LoginComponent)
   },
   {
+    path: 'instructor-login',
+    loadComponent: () => import('./features/auth/instructor-login/instructor-login').then(m => m.InstructorLoginComponent)
+  },
+  {
     path: 'instructor-register',
     loadComponent: () => import('./features/auth/instructor-register/instructor-register').then(m => m.InstructorRegisterComponent)
   },
   {
     path: 'instructor/dashboard',
+    canActivate: [authGuard],
+    data: { role: 'instructor', loginRoute: '/instructor-login' },
     loadComponent: () => import('./features/instructor/dashboard/instructor-dashboard').then(m => m.InstructorDashboardComponent)
   },
   {

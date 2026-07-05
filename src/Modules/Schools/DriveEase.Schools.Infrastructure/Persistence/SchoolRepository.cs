@@ -55,6 +55,9 @@ public sealed class InstructorRepository(SchoolsDbContext dbContext) : IInstruct
     public Task<Instructor?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         dbContext.Instructors.AsNoTracking().FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
 
+    public Task<Instructor?> GetByEmailAsync(string email, CancellationToken cancellationToken = default) =>
+        dbContext.Instructors.AsNoTracking().FirstOrDefaultAsync(i => i.Email == email, cancellationToken);
+
     public async Task<IReadOnlyList<Instructor>> GetAvailableBySchoolAsync(
         Guid schoolId, CancellationToken cancellationToken = default) =>
         await dbContext.Instructors

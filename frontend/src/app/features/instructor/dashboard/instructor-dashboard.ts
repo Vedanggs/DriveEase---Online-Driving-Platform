@@ -1,6 +1,7 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { InstructorService } from '../../../core/services/instructor.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { InstructorNotificationDto } from '../../../core/models/notification.models';
 import { InstructorLessonDto } from '../../../core/models/lesson.models';
 
@@ -25,7 +26,7 @@ interface FeedbackGroup {
 })
 export class InstructorDashboardComponent implements OnInit, OnDestroy {
   private readonly instructorService: InstructorService;
-  private session: InstructorSession | null = null;
+  private readonly authService = inject(AuthService);
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private readonly localReadIds = new Set<string>();
 
@@ -71,12 +72,11 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    const raw = sessionStorage.getItem('instructor_session');
-    if (!raw) { window.location.href = '/instructor-login'; return; }
+    const user = this.authService.user();
+    if (!user || user.role !== 'instructor') { window.location.href = '/instructor-login'; return; }
 
-    this.session = JSON.parse(raw) as InstructorSession;
-    this.instructorName.set(this.session.name ?? 'Instructor');
-    this.schoolName.set(this.session.schoolName ?? 'Your School');
+    this.instructorName.set(user.fullName ?? 'Instructor');
+    this.schoolName.set(user.schoolName ?? 'Your School');
 
     this.loadNotifications();
     this.loadLessons();
@@ -90,8 +90,9 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadNotifications() {
-    if (!this.session) return;
-    this.instructorService.getNotifications(this.session.instructorId).subscribe({
+    const user = this.authService.user();
+    if (!user || !user.instructorId) return;
+    this.instructorService.getNotifications(user.instructorId).subscribe({
       next: data => this.notifications.set(
         data.map(n => ({ ...n, isRead: n.isRead || this.localReadIds.has(n.id) }))
       ),
@@ -100,8 +101,9 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadLessons() {
-    if (!this.session) return;
-    this.instructorService.getUpcomingLessons(this.session.instructorId).subscribe({
+    const user = this.authService.user();
+    if (!user || !user.instructorId) return;
+    this.instructorService.getUpcomingLessons(user.instructorId).subscribe({
       next: data => this.lessons.set(data),
       error: () => this.lessons.set([])
     });
@@ -200,7 +202,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   }
 
   logout() {
-    sessionStorage.removeItem('instructor_session');
+    this.authService.logout();
     window.location.href = '/instructor-login';
   }
 }

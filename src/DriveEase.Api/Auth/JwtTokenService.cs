@@ -9,17 +9,17 @@ namespace DriveEase.Api.Auth;
 
 public sealed class JwtTokenService(IOptions<JwtOptions> options, IClock clock)
 {
-    public string GenerateAccessToken(Guid studentId, string email, string fullName)
+    public string GenerateAccessToken(Guid userId, string email, string fullName, string role = "Student")
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Value.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, studentId.ToString()),
+            new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, email),
             new Claim(JwtRegisteredClaimNames.Name, fullName),
-            new Claim(ClaimTypes.Role, "Student"),
+            new Claim(ClaimTypes.Role, role),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 

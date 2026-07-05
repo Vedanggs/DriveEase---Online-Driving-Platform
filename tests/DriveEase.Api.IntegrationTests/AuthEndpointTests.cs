@@ -136,6 +136,42 @@ public sealed class AuthEndpointTests(DriveEaseWebApplicationFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task InstructorLogin_WithSeededDemoCredentials_ReturnsInstructorJwt()
+    {
+        var response = await _client.PostAsync("/api/v1/auth/instructor-login",
+            Serialize(new
+            {
+                Email = "amit.sharma@mumbaicentral.com",
+                Password = "Instructor@123"
+            }));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var accessToken = doc.RootElement.GetProperty("accessToken").GetString();
+        accessToken.Should().NotBeNullOrWhiteSpace();
+        doc.RootElement.GetProperty("instructorId").GetString().Should().NotBeNullOrWhiteSpace();
+        doc.RootElement.GetProperty("schoolName").GetString().Should().Be("Mumbai Central Driving Academy");
+
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
+        jwt.Claims.First(c => c.Type == ClaimTypes.Role).Value.Should().Be("Instructor");
+        jwt.Claims.First(c => c.Type == JwtRegisteredClaimNames.Email).Value.Should().Be("amit.sharma@mumbaicentral.com");
+    }
+
+    [Fact]
+    public async Task InstructorLogin_WithWrongPassword_Returns401()
+    {
+        var response = await _client.PostAsync("/api/v1/auth/instructor-login",
+            Serialize(new
+            {
+                Email = "amit.sharma@mumbaicentral.com",
+                Password = "WrongPassword123!"
+            }));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
     // ── 403: authenticated but wrong role ─────────────────────────────────────
 
     [Fact]

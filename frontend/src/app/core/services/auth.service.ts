@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs';
-import { AuthResponse, LoginRequest, RegisterRequest } from '../models/auth.models';
+import { AuthResponse, InstructorAuthResponse, LoginRequest, RegisterRequest } from '../models/auth.models';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -17,7 +17,13 @@ export class AuthService {
   login(request: LoginRequest) {
     return this.http
       .post<AuthResponse>(`${environment.apiUrl}/api/v1/auth/login`, request)
-      .pipe(tap(res => this.persist(res)));
+      .pipe(tap(res => this.persist({ ...res, role: 'student' })));
+  }
+
+  instructorLogin(request: { email: string; password: string }) {
+    return this.http
+      .post<InstructorAuthResponse>(`${environment.apiUrl}/api/v1/auth/instructor-login`, request)
+      .pipe(tap(res => this.persist({ ...res, role: 'instructor' })));
   }
 
   register(request: RegisterRequest) {

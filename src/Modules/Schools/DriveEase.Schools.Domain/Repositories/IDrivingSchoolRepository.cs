@@ -12,6 +12,7 @@ public interface IDrivingSchoolRepository
 public interface IInstructorRepository
 {
     Task<Instructor?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Instructor?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Instructor>> GetAvailableBySchoolAsync(Guid schoolId, CancellationToken cancellationToken = default);
     Task AddAsync(Instructor instructor, CancellationToken cancellationToken = default);
     Task UpdateAsync(Instructor instructor, CancellationToken cancellationToken = default);

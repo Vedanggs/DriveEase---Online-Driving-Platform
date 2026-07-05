@@ -3,6 +3,7 @@ import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Va
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/services/auth.service';
 
 // Format: MH-12AB4566  (state 2-alpha)(dash)(2-digit RTO)(2-alpha)(4-digit serial)
 const LICENSE_RE = /^[A-Z]{2}-\d{2}[A-Z]{2}\d{4}$/;
@@ -35,9 +36,10 @@ interface SchoolOption {
 export class InstructorRegisterComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('roadCanvas') private readonly canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  private readonly fb     = inject(FormBuilder);
-  private readonly router = inject(Router);
-  private readonly http   = inject(HttpClient);
+  private readonly fb          = inject(FormBuilder);
+  private readonly router      = inject(Router);
+  private readonly http        = inject(HttpClient);
+  private readonly authService = inject(AuthService);
 
   readonly loading      = signal(false);
   readonly error        = signal<string | null>(null);
@@ -92,38 +94,26 @@ export class InstructorRegisterComponent implements OnInit, AfterViewInit, OnDes
     this.error.set(null);
 
     const { fullName, email, licenseNumber, schoolId, password } = this.form.value;
-    const school = this.schools().find(s => s.id === schoolId);
-
-    // Guard: email must not already be registered.
-    const existing: Record<string, unknown> = JSON.parse(localStorage.getItem('instructor_profiles') ?? '{}');
-    if (existing[email!]) {
-      this.error.set('An account with this email already exists. Please sign in.');
-      this.loading.set(false);
-      return;
-    }
 
     this.http.post<{ id: string }>(
       `${environment.apiUrl}/api/v1/schools/${schoolId}/instructors`,
-      { fullName, licenseNumber }
+      { fullName, licenseNumber, email, password }
     ).subscribe({
-      next: ({ id }) => {
-        const session = {
-          instructorId: id,
-          email,
-          name: fullName,
-          schoolName: school?.name ?? 'Your School',
-          schoolId
-        };
-        sessionStorage.setItem('instructor_session', JSON.stringify(session));
-        const profiles: Record<string, { passwordHash: string } & typeof session> =
-          JSON.parse(localStorage.getItem('instructor_profiles') ?? '{}');
-        profiles[email!] = { ...session, passwordHash: btoa(password!) };
-        localStorage.setItem('instructor_profiles', JSON.stringify(profiles));
-        this.loading.set(false);
-        this.router.navigate(['/instructor/dashboard']);
+      next: () => {
+        this.authService.instructorLogin({ email: email!, password: password! }).subscribe({
+          next: () => {
+            this.loading.set(false);
+            this.router.navigate(['/instructor/dashboard']);
+          },
+          error: () => {
+            this.loading.set(false);
+            this.router.navigate(['/instructor-login']);
+          }
+        });
       },
-      error: () => {
-        this.error.set('Registration failed. Please try again.');
+      error: (err) => {
+        const errMsg = err?.error?.detail || 'Registration failed. Please try again.';
+        this.error.set(errMsg);
         this.loading.set(false);
       }
     });

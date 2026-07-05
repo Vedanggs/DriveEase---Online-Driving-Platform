@@ -1,6 +1,7 @@
 import { Component, computed, HostListener, inject, signal, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 
 interface DemoInstructor {
   name: string;
@@ -47,8 +48,9 @@ const DEMO_SCHOOLS: DemoSchool[] = [
 export class InstructorLoginComponent implements AfterViewInit, OnDestroy {
   @ViewChild('roadCanvas') private readonly canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  private readonly fb     = inject(FormBuilder);
-  private readonly router = inject(Router);
+  private readonly fb          = inject(FormBuilder);
+  private readonly router      = inject(Router);
+  private readonly authService = inject(AuthService);
 
   // ── Existing auth signals ──────────────────────────────────────────────────
   readonly loading = signal(false);
@@ -105,6 +107,12 @@ export class InstructorLoginComponent implements AfterViewInit, OnDestroy {
   openDemoModal()  { this.showDemoModal.set(true);  this.demoSearch.set(''); }
   closeDemoModal() { this.showDemoModal.set(false); }
 
+  useDemoInstructor(instructor: DemoInstructor) {
+    this.form.setValue({ email: instructor.email, password: instructor.password });
+    this.closeDemoModal();
+    this.loginInstructor(instructor.email, instructor.password);
+  }
+
   copyToClipboard(text: string, key: string) {
     navigator.clipboard.writeText(text).then(() => {
       this.copiedKey.set(key);
@@ -122,31 +130,24 @@ export class InstructorLoginComponent implements AfterViewInit, OnDestroy {
   submit() {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
 
+    const { email, password } = this.form.value;
+    this.loginInstructor(email!, password!);
+  }
+
+  private loginInstructor(email: string, password: string) {
     this.loading.set(true);
     this.error.set(null);
 
-    const { email, password } = this.form.value;
-
-    const profiles: Record<string, { passwordHash: string; instructorId: string; name: string; schoolName: string; schoolId: string }> =
-      JSON.parse(localStorage.getItem('instructor_profiles') ?? '{}');
-    const saved = profiles[email!];
-
-    if (!saved) {
-      this.error.set('No account found for this email. Please register first.');
-      this.loading.set(false);
-      return;
-    }
-
-    if (saved.passwordHash !== btoa(password!)) {
-      this.error.set('Incorrect password. Please try again.');
-      this.loading.set(false);
-      return;
-    }
-
-    const { passwordHash: _, ...session } = saved;
-    sessionStorage.setItem('instructor_session', JSON.stringify({ ...session, email }));
-    this.loading.set(false);
-    this.router.navigate(['/instructor/dashboard']);
+    this.authService.instructorLogin({ email, password }).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.router.navigate(['/instructor/dashboard']);
+      },
+      error: () => {
+        this.error.set('Invalid email or password. Please try again.');
+        this.loading.set(false);
+      }
+    });
   }
 
   // ── Road canvas animation ──────────────────────────────────────────────────

@@ -236,6 +236,14 @@
                         Password
                       }
                     </button>
+                    <button
+                      class="demo-copy-btn"
+                      type="button"
+                      (click)="useDemoInstructor(inst)"
+                      [disabled]="loading() || demoSeeding()"
+                      [attr.aria-label]="'Sign in with demo account for ' + inst.name">
+                      Use Demo
+                    </button>
                   </div>
                 </div>
               }
@@ -252,7 +260,7 @@
           <line x1="12" y1="8" x2="12" y2="12"/>
           <line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
-        Copy the email and password, paste them into the form, then sign in. Press <kbd>Esc</kbd> to close.
+        Use Demo to sign in instantly, or copy the credentials into the form manually. Press <kbd>Esc</kbd> to close.
       </div>
 
     </div>

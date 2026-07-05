@@ -1,8 +1,9 @@
-using DriveEase.Students.Application;
+using StudentsHasher = DriveEase.Students.Application.IPasswordHasher;
+using SchoolsHasher = DriveEase.Schools.Application.IPasswordHasher;
 
 namespace DriveEase.Api.Auth;
 
-public sealed class BCryptPasswordHasher : IPasswordHasher
+public sealed class BCryptPasswordHasher : StudentsHasher, SchoolsHasher
 {
     public string Hash(string password) =>
         BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);

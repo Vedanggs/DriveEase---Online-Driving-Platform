@@ -4,6 +4,7 @@ using Asp.Versioning;
 using DriveEase.Api.Auth;
 using DriveEase.Students.Application.Commands.LoginStudent;
 using DriveEase.Students.Application.Commands.RegisterStudent;
+using DriveEase.Schools.Application.Commands.LoginInstructor;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +19,8 @@ public sealed record LogoutRequest(string RefreshToken);
 [Route("api/v{version:apiVersion}/[controller]")]
 public sealed class AuthController(
     ISender sender,
-    RefreshTokenService refreshTokenService) : ControllerBase
+    RefreshTokenService refreshTokenService,
+    JwtTokenService jwtTokenService) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<IActionResult> Register(
@@ -44,6 +46,31 @@ public sealed class AuthController(
             accessToken,
             refreshToken,
             result.StudentId,
+            result.FullName,
+            result.Email
+        });
+    }
+
+    [HttpPost("instructor-login")]
+    public async Task<IActionResult> InstructorLogin(
+        [FromBody] LoginInstructorCommand command, CancellationToken ct)
+    {
+        var result = await sender.Send(command, ct);
+        if (result is null)
+            return Unauthorized();
+
+        var accessToken = jwtTokenService.GenerateAccessToken(
+            result.InstructorId,
+            result.Email,
+            result.FullName,
+            role: "Instructor");
+
+        return Ok(new
+        {
+            accessToken,
+            result.InstructorId,
+            result.SchoolId,
+            result.SchoolName,
             result.FullName,
             result.Email
         });

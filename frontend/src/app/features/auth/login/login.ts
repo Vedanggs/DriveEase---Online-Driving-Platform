@@ -1,10 +1,7 @@
 import { Component, computed, HostListener, inject, signal, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
-import { environment } from '../../../../environments/environment';
 
 interface DemoInstructor {
   name: string;
@@ -54,7 +51,6 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
   private readonly fb     = inject(FormBuilder);
   private readonly auth   = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly http   = inject(HttpClient);
 
   readonly loading = signal(false);
   readonly error   = signal<string | null>(null);
@@ -94,7 +90,6 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) this.startRoad();
-    this.seedDemoInstructors();
   }
 
   ngOnDestroy() {
@@ -111,78 +106,21 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
     this.role.set(r);
     this.error.set(null);
     this.form.reset();
-    if (r === 'instructor') this.seedDemoInstructors();
   }
 
-  private async seedDemoInstructors(): Promise<void> {
-    // Phase 1 — instant, no API calls: seed fake IDs so login works immediately
-    const profiles: Record<string, any> = JSON.parse(localStorage.getItem('instructor_profiles') ?? '{}');
-    let changed = false;
-    for (const school of DEMO_SCHOOLS) {
-      for (const inst of school.instructors) {
-        if (profiles[inst.email]) continue;
-        profiles[inst.email] = {
-          instructorId: crypto.randomUUID(),
-          name: inst.name,
-          schoolName: school.name,
-          schoolId: crypto.randomUUID(),
-          passwordHash: btoa(inst.password)
-        };
-        changed = true;
-      }
-    }
-    if (changed) localStorage.setItem('instructor_profiles', JSON.stringify(profiles));
 
-    // Phase 2 — background: replace fake IDs with real backend IDs (so lessons show up)
-    this.demoSeeding.set(true);
-    try {
-      const schools = await firstValueFrom(
-        this.http.get<{ id: string; name: string }[]>(`${environment.apiUrl}/api/v1/schools`)
-      );
-      const live = JSON.parse(localStorage.getItem('instructor_profiles') ?? '{}');
-      let enriched = false;
-
-      for (const demoSchool of DEMO_SCHOOLS) {
-        const backendSchool = schools.find(s => s.name === demoSchool.name);
-        if (!backendSchool) continue;
-        try {
-          const list = await firstValueFrom(
-            this.http.get<{ id: string; licenseNumber: string }[]>(
-              `${environment.apiUrl}/api/v1/schools/${backendSchool.id}/instructors`
-            )
-          );
-          for (const inst of demoSchool.instructors) {
-            const found = list.find(i => i.licenseNumber === inst.license);
-            if (found && live[inst.email]) {
-              live[inst.email].instructorId = found.id;
-              live[inst.email].schoolId     = backendSchool.id;
-              enriched = true;
-            } else if (!found && live[inst.email]) {
-              try {
-                const res = await firstValueFrom(
-                  this.http.post<{ id: string }>(
-                    `${environment.apiUrl}/api/v1/schools/${backendSchool.id}/instructors`,
-                    { fullName: inst.name, licenseNumber: inst.license }
-                  )
-                );
-                live[inst.email].instructorId = res.id;
-                live[inst.email].schoolId     = backendSchool.id;
-                enriched = true;
-              } catch { /* duplicate license or error — keep fake ID */ }
-            }
-          }
-        } catch { /* school fetch failed — keep fake IDs */ }
-        if (enriched) localStorage.setItem('instructor_profiles', JSON.stringify(live));
-      }
-    } catch { /* backend unavailable — fake IDs remain, login still works */ }
-    finally { this.demoSeeding.set(false); }
-  }
 
   openDemoModal()  { this.showDemoModal.set(true);  this.demoSearch.set(''); }
   closeDemoModal() { this.showDemoModal.set(false); }
 
   fillStudentDemo() {
     this.form.setValue({ email: 'test@gmail.com', password: 'Test@123' });
+  }
+
+  useDemoInstructor(instructor: DemoInstructor) {
+    this.form.setValue({ email: instructor.email, password: instructor.password });
+    this.closeDemoModal();
+    this.loginInstructor(instructor.email, instructor.password);
   }
 
   copyToClipboard(text: string, key: string) {
@@ -201,37 +139,36 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
   submit() {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
 
-    this.loading.set(true);
-    this.error.set(null);
-
     const { email, password } = this.form.value;
 
     if (this.role() === 'instructor') {
-      const profiles: Record<string, any> =
-        JSON.parse(localStorage.getItem('instructor_profiles') ?? '{}');
-      const saved = profiles[email!];
-
-      if (!saved) {
-        this.error.set('No account found for this email. Please register first.');
-        this.loading.set(false);
-        return;
-      }
-
-      if (saved.passwordHash !== btoa(password!)) {
-        this.error.set('Incorrect password. Please try again.');
-        this.loading.set(false);
-        return;
-      }
-
-      const { passwordHash: _pw, ...session } = saved;
-      sessionStorage.setItem('instructor_session', JSON.stringify({ ...session, email }));
-      this.loading.set(false);
-      this.router.navigate(['/instructor/dashboard']);
+      this.loginInstructor(email!, password!);
       return;
     }
 
+    this.loading.set(true);
+    this.error.set(null);
     this.auth.login({ email: email!, password: password! }).subscribe({
-      next:  () => this.router.navigate(['/schools']),
+      next:  () => {
+        this.loading.set(false);
+        this.router.navigate(['/schools']);
+      },
+      error: () => {
+        this.error.set('Invalid email or password.');
+        this.loading.set(false);
+      }
+    });
+  }
+
+  private loginInstructor(email: string, password: string) {
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.auth.instructorLogin({ email, password }).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.router.navigate(['/instructor/dashboard']);
+      },
       error: () => {
         this.error.set('Invalid email or password.');
         this.loading.set(false);

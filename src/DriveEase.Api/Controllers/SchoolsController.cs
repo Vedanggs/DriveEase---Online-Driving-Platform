@@ -52,10 +52,10 @@ public sealed class SchoolsController(ISender sender) : ControllerBase
         Guid schoolId, [FromBody] RegisterInstructorRequest request, CancellationToken cancellationToken)
     {
         var id = await sender.Send(
-            new RegisterInstructorCommand(schoolId, request.FullName, request.LicenseNumber),
+            new RegisterInstructorCommand(schoolId, request.FullName, request.LicenseNumber, request.Email, request.Password),
             cancellationToken);
         return Ok(new { id });
     }
 }
 
-public sealed record RegisterInstructorRequest(string FullName, string LicenseNumber);
+public sealed record RegisterInstructorRequest(string FullName, string LicenseNumber, string Email, string Password);

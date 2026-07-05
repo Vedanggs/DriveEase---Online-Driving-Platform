@@ -26,6 +26,8 @@ public sealed class SchoolsDbContext(DbContextOptions<SchoolsDbContext> options)
             e.HasKey(x => x.Id);
             e.Property(x => x.FullName).HasMaxLength(200).IsRequired();
             e.Property(x => x.LicenseNumber).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Email).HasMaxLength(200).IsRequired(false);
+            e.Property(x => x.PasswordHash).HasMaxLength(200).IsRequired(false);
             e.HasIndex(x => x.SchoolId);
         });
     }

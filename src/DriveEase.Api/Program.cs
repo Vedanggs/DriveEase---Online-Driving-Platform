@@ -60,7 +60,8 @@ builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddScoped<RefreshTokenService>();
 
 // ── Password hasher ───────────────────────────────────────────────────────────
-builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+builder.Services.AddScoped<DriveEase.Students.Application.IPasswordHasher, BCryptPasswordHasher>();
+builder.Services.AddScoped<DriveEase.Schools.Application.IPasswordHasher, BCryptPasswordHasher>();
 
 // ── GlobalExceptionHandler + ProblemDetails ───────────────────────────────────
 // Catches all unhandled exceptions and returns RFC 7807 ProblemDetails JSON.
@@ -105,7 +106,7 @@ builder.Services.AddAuthorization(options =>
               .RequireRole("SchoolAdmin"));
 
     options.AddPolicy("Instructor", policy =>
-        policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+        policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, "StudentBearer")
               .RequireRole("Instructor"));
 });
 
@@ -403,6 +404,57 @@ app.Use(async (ctx, next) =>
     // Direct column patch — guaranteed safety net for columns that EF migrations may
     // have failed to add (e.g. when EnsureCreated was used for initial deployment).
     // Idempotent: IF NOT EXISTS means this is safe to run on every startup.
+    async Task EnsureInstructorAuthColumnsAsync()
+    {
+        var schoolsCtx = sp.GetRequiredService<SchoolsDbContext>();
+
+        try
+        {
+            if (schoolsCtx.Database.IsSqlServer())
+            {
+                await schoolsCtx.Database.ExecuteSqlRawAsync("""
+                    IF OBJECT_ID(N'[schools].[Instructors]') IS NOT NULL
+                    BEGIN
+                        IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[schools].[Instructors]') AND name = N'Email')
+                            ALTER TABLE [schools].[Instructors] ADD [Email] nvarchar(200) NULL;
+                        IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[schools].[Instructors]') AND name = N'PasswordHash')
+                            ALTER TABLE [schools].[Instructors] ADD [PasswordHash] nvarchar(200) NULL;
+                    END;
+                    """);
+            }
+            else if (schoolsCtx.Database.IsSqlite())
+            {
+                await using var conn = schoolsCtx.Database.GetDbConnection();
+                if (conn.State != System.Data.ConnectionState.Open)
+                    await conn.OpenAsync();
+
+                var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                await using (var pragma = conn.CreateCommand())
+                {
+                    pragma.CommandText = "PRAGMA table_info('Instructors')";
+                    await using var reader = await pragma.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        if (!reader.IsDBNull(1))
+                            existingColumns.Add(reader.GetString(1));
+                    }
+                }
+
+                if (!existingColumns.Contains("Email"))
+                    await schoolsCtx.Database.ExecuteSqlRawAsync("""ALTER TABLE "Instructors" ADD COLUMN "Email" TEXT NULL;""");
+
+                if (!existingColumns.Contains("PasswordHash"))
+                    await schoolsCtx.Database.ExecuteSqlRawAsync("""ALTER TABLE "Instructors" ADD COLUMN "PasswordHash" TEXT NULL;""");
+            }
+        }
+        catch (Exception ex)
+        {
+            startupLogger.LogWarning(ex, "Instructor auth column patch failed");
+        }
+    }
+
+    await EnsureInstructorAuthColumnsAsync();
+
     if (sqlResolved)
     {
         var patchCtx = sp.GetRequiredService<EnrollmentsDbContext>();

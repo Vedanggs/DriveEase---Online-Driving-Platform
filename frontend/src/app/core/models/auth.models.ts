@@ -13,9 +13,14 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   accessToken: string;
-  studentId: string;
+  refreshToken?: string;
+  studentId?: string;
+  instructorId?: string;
+  schoolId?: string;
+  schoolName?: string;
   fullName: string;
   email: string;
+  role?: 'student' | 'instructor';
 }
 
 export interface InstructorLoginRequest {
