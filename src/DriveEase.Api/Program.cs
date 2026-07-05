@@ -142,7 +142,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy => policy
         .WithOrigins(
             "http://localhost:4200",
-            "https://green-meadow-07312bf00.7.azurestaticapps.net")
+            "https://green-meadow-07312bf00.7.azurestaticapps.net",
+            "https://drive-ease-online-driving-platform.vercel.app")
         .AllowAnyHeader()
         .AllowAnyMethod());
 });
