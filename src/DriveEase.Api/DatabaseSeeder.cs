@@ -1,5 +1,7 @@
 using DriveEase.Schools.Domain.Entities;
 using DriveEase.Schools.Infrastructure.Persistence;
+using DriveEase.Students.Domain.Entities;
+using DriveEase.Students.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 public static class DatabaseSeeder
@@ -151,6 +153,27 @@ public static class DatabaseSeeder
         {
             await context.Instructors.AddRangeAsync(instructorsToAdd);
             await context.SaveChangesAsync();
+        }
+
+        // Demo student account — matches the credentials the frontend's
+        // "Demo Credentials" button on the student login page fills in.
+        var studentsContext = scope.ServiceProvider.GetRequiredService<StudentsDbContext>();
+        const string demoStudentEmail = "test@gmail.com";
+
+        var demoStudentExists = await studentsContext.Students
+            .AnyAsync(s => s.Email == demoStudentEmail);
+
+        if (!demoStudentExists)
+        {
+            var demoStudent = Student.Register(
+                fullName: "Test Student",
+                email: demoStudentEmail,
+                phoneNumber: "9999999999",
+                dateOfBirth: new DateOnly(2000, 1, 1),
+                passwordHash: BCrypt.Net.BCrypt.HashPassword("Test@123", 12));
+
+            await studentsContext.Students.AddAsync(demoStudent);
+            await studentsContext.SaveChangesAsync();
         }
     }
 }
