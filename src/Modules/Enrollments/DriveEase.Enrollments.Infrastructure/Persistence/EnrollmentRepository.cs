@@ -21,7 +21,9 @@ public sealed class EnrollmentRepository(EnrollmentsDbContext dbContext) : IEnro
         var cutoff = DateTime.UtcNow - age;
         return await dbContext.Enrollments
             .AsNoTracking()
-            .Where(e => e.PaymentStatus == PaymentStatus.Pending && e.EnrolledAt < cutoff)
+            .Where(e => e.PaymentStatus == PaymentStatus.Pending
+                     && e.Status == EnrollmentStatus.Pending
+                     && e.EnrolledAt < cutoff)
             .ToListAsync(cancellationToken);
     }
 
