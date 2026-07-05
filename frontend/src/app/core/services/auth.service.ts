@@ -13,6 +13,7 @@ export class AuthService {
   readonly isLoggedIn = computed(() => this._user() !== null);
   readonly studentId = computed(() => this._user()?.studentId ?? null);
   readonly fullName = computed(() => this._user()?.fullName ?? null);
+  readonly role = computed(() => this._user()?.role ?? null);
 
   login(request: LoginRequest) {
     return this.http
