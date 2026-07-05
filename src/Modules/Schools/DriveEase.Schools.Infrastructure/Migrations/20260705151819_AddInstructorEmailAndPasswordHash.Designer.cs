@@ -3,6 +3,7 @@ using System;
 using DriveEase.Schools.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DriveEase.Schools.Infrastructure.Migrations
 {
     [DbContext(typeof(SchoolsDbContext))]
-    partial class SchoolsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260705151819_AddInstructorEmailAndPasswordHash")]
+    partial class AddInstructorEmailAndPasswordHash
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
