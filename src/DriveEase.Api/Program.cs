@@ -424,27 +424,38 @@ app.Use(async (ctx, next) =>
             }
             else if (schoolsCtx.Database.IsSqlite())
             {
-                await using var conn = schoolsCtx.Database.GetDbConnection();
-                if (conn.State != System.Data.ConnectionState.Open)
-                    await conn.OpenAsync();
-
-                var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                await using (var pragma = conn.CreateCommand())
+                // Use EF Core's own connection lifecycle (OpenConnectionAsync/CloseConnectionAsync)
+                // instead of disposing the DbConnection from GetDbConnection() directly — that
+                // connection is owned by schoolsCtx, and disposing it here double-disposes the
+                // native SQLite handle when the DbContext's own scope later closes it, corrupting
+                // native SQLite state for the rest of the process.
+                await schoolsCtx.Database.OpenConnectionAsync();
+                try
                 {
-                    pragma.CommandText = "PRAGMA table_info('Instructors')";
-                    await using var reader = await pragma.ExecuteReaderAsync();
-                    while (await reader.ReadAsync())
+                    var conn = schoolsCtx.Database.GetDbConnection();
+
+                    var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    await using (var pragma = conn.CreateCommand())
                     {
-                        if (!reader.IsDBNull(1))
-                            existingColumns.Add(reader.GetString(1));
+                        pragma.CommandText = "PRAGMA table_info('Instructors')";
+                        await using var reader = await pragma.ExecuteReaderAsync();
+                        while (await reader.ReadAsync())
+                        {
+                            if (!reader.IsDBNull(1))
+                                existingColumns.Add(reader.GetString(1));
+                        }
                     }
+
+                    if (!existingColumns.Contains("Email"))
+                        await schoolsCtx.Database.ExecuteSqlRawAsync("""ALTER TABLE "Instructors" ADD COLUMN "Email" TEXT NULL;""");
+
+                    if (!existingColumns.Contains("PasswordHash"))
+                        await schoolsCtx.Database.ExecuteSqlRawAsync("""ALTER TABLE "Instructors" ADD COLUMN "PasswordHash" TEXT NULL;""");
                 }
-
-                if (!existingColumns.Contains("Email"))
-                    await schoolsCtx.Database.ExecuteSqlRawAsync("""ALTER TABLE "Instructors" ADD COLUMN "Email" TEXT NULL;""");
-
-                if (!existingColumns.Contains("PasswordHash"))
-                    await schoolsCtx.Database.ExecuteSqlRawAsync("""ALTER TABLE "Instructors" ADD COLUMN "PasswordHash" TEXT NULL;""");
+                finally
+                {
+                    await schoolsCtx.Database.CloseConnectionAsync();
+                }
             }
         }
         catch (Exception ex)
