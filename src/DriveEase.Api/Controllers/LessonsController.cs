@@ -51,8 +51,8 @@ public sealed class LessonsController(ISender sender) : ControllerBase
     [HttpGet("enrollment/{enrollmentId:guid}/count")]
     public async Task<IActionResult> GetEnrollmentLessonCount(Guid enrollmentId, CancellationToken cancellationToken)
     {
-        var count = await sender.Send(new GetEnrollmentLessonCountQuery(enrollmentId), cancellationToken);
-        return Ok(new { count });
+        var result = await sender.Send(new GetEnrollmentLessonCountQuery(enrollmentId), cancellationToken);
+        return Ok(new { count = result.Completed, scheduledCount = result.Scheduled });
     }
 
     [AllowAnonymous]

@@ -8,6 +8,7 @@ public sealed class BookLessonHandler(
     ILessonRepository repository) : IRequestHandler<BookLessonCommand, Guid>
 {
     private const int MaxLessonsPerEnrollment = 5;
+    private const int MaxPendingLessons = 2;
 
     public async Task<Guid> Handle(BookLessonCommand request, CancellationToken cancellationToken)
     {
@@ -17,6 +18,14 @@ public sealed class BookLessonHandler(
         if (completedCount >= MaxLessonsPerEnrollment)
             throw new InvalidOperationException(
                 $"Lesson package limit reached. Maximum {MaxLessonsPerEnrollment} lessons per enrollment.");
+
+        // At most 2 lessons may be awaiting completion at any time — the rest of the
+        // package can only be booked as those are completed or cancelled.
+        var scheduledCount = await repository.CountScheduledByEnrollmentAsync(request.EnrollmentId, cancellationToken);
+        if (scheduledCount >= MaxPendingLessons)
+            throw new InvalidOperationException(
+                $"You already have {MaxPendingLessons} lessons scheduled. " +
+                "Complete or cancel one before booking another.");
 
         var conflict = await repository.HasConflictAsync(
             request.InstructorId, request.ScheduledAt, request.Duration, cancellationToken);

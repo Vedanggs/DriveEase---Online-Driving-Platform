@@ -92,6 +92,10 @@ public sealed class LessonRepository(LessonsDbContext dbContext) : ILessonReposi
         dbContext.Lessons
             .CountAsync(l => l.EnrollmentId == enrollmentId && l.Status == LessonStatus.Completed, cancellationToken);
 
+    public Task<int> CountScheduledByEnrollmentAsync(Guid enrollmentId, CancellationToken cancellationToken = default) =>
+        dbContext.Lessons
+            .CountAsync(l => l.EnrollmentId == enrollmentId && l.Status == LessonStatus.Scheduled, cancellationToken);
+
     // Returns all Scheduled lessons that have already started (ScheduledAt in the past).
     // Duration can't be used in EF/SQLite LINQ, so the end-time check is done in memory
     // by the caller after this query returns.

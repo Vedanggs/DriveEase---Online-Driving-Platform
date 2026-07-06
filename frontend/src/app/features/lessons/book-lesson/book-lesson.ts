@@ -14,6 +14,7 @@ interface InstructorOption {
 }
 
 const MAX_LESSONS = 5;
+const MAX_PENDING_LESSONS = 2;
 
 @Component({
   selector: 'app-book-lesson',
@@ -38,9 +39,12 @@ export class BookLessonComponent implements OnInit {
   readonly bookedSlots = signal<{ scheduledAt: string; duration: string }[]>([]);
 
   readonly bookedCount = signal(0);
+  readonly scheduledCount = signal(0);
   readonly remainingLessons = computed(() => Math.max(0, MAX_LESSONS - this.bookedCount()));
   readonly atLimit = computed(() => this.remainingLessons() === 0);
+  readonly atPendingLimit = computed(() => this.scheduledCount() >= MAX_PENDING_LESSONS);
   readonly maxLessons = MAX_LESSONS;
+  readonly maxPendingLessons = MAX_PENDING_LESSONS;
 
   // Resolved from API on init; not from potentially stale localStorage
   private _enrollmentId = '';
@@ -162,11 +166,12 @@ export class BookLessonComponent implements OnInit {
         // Fetch authoritative count BEFORE showing the form to eliminate the race condition
         // where the user clicks "Book lesson" while bookedCount is still 0 (its initial value)
         // but the backend already sees 5 lessons.
-        this.http.get<{ count: number }>(
+        this.http.get<{ count: number; scheduledCount: number }>(
           `${environment.apiUrl}/api/v1/lessons/enrollment/${this._enrollmentId}/count`
         ).subscribe({
           next: res => {
             this.bookedCount.set(res.count);
+            this.scheduledCount.set(res.scheduledCount ?? 0);
             this.enrollmentIdLoaded.set(true);
           },
           error: () => this.enrollmentIdLoaded.set(true)
@@ -177,14 +182,20 @@ export class BookLessonComponent implements OnInit {
   }
 
   submit() {
-    if (this.atLimit()) return;
+    if (this.atLimit() || this.atPendingLimit()) return;
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
 
     this.loading.set(true);
     this.error.set(null);
 
     const v = this.form.value;
-    const scheduledAt = `${v.date!}T${v.timeSlot!}:00`;
+    // Build as a real Date (parsed in the browser's local timezone per the
+    // ECMAScript date-time string format), then convert to a true UTC ISO
+    // string. Sending the naive "YYYY-MM-DDTHH:mm:00" string with no offset
+    // stored an ambiguous wall-clock value that display code later
+    // mis-interpreted as UTC, shifting every rendered time by the local
+    // timezone offset (e.g. a 4 PM booking showing as 9:30 PM for IST).
+    const scheduledAt = new Date(`${v.date!}T${v.timeSlot!}:00`).toISOString();
 
     const instructorName = this.instructors().find(i => i.id === v.instructorId!)?.fullName ?? '';
 
