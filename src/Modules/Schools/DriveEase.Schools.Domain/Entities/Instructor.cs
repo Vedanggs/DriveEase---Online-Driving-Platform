@@ -26,4 +26,11 @@ public sealed class Instructor : Entity<Guid>
         };
 
     public void SetAvailability(bool available) => IsAvailable = available;
+
+    public void UpdateCredentials(string licenseNumber, string? email, string? passwordHash)
+    {
+        LicenseNumber = licenseNumber;
+        Email = email;
+        PasswordHash = passwordHash;
+    }
 }

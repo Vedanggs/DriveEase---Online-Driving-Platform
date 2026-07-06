@@ -105,13 +105,19 @@ public static class DatabaseSeeder
         };
 
         var defaultPasswordHash = BCrypt.Net.BCrypt.HashPassword("Instructor@123", 12);
-        var existingInstructorEmails = (await context.Instructors
-            .Where(i => i.Email != null)
-            .Select(i => i.Email!)
-            .ToListAsync())
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Keyed by (SchoolId, FullName) — the one identity that stays stable across
+        // seeder changes. Email/LicenseNumber are NOT safe dedup keys: an instructor's
+        // computed email/license shifts when they're added to demoMap, which previously
+        // caused the seeder to treat them as "new" and insert a duplicate row instead of
+        // recognizing the existing one (whose Email was still NULL from before the
+        // Email/PasswordHash columns existed).
+        var existingByKey = (await context.Instructors.ToListAsync())
+            .GroupBy(i => (i.SchoolId, i.FullName))
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(i => i.Email is not null).ToList());
 
         var instructorsToAdd = new List<Instructor>();
+        var instructorsToRemove = new List<Instructor>();
 
         for (var i = 0; i < desiredSchools.Length; i++)
         {
@@ -138,8 +144,12 @@ public static class DatabaseSeeder
                     passwordHash = defaultPasswordHash;
                 }
 
-                if (!existingInstructorEmails.Add(email))
+                if (existingByKey.TryGetValue((schoolId, name), out var matches))
+                {
+                    matches[0].UpdateCredentials(license, email, passwordHash);
+                    instructorsToRemove.AddRange(matches.Skip(1));
                     return;
+                }
 
                 instructorsToAdd.Add(Instructor.Create(schoolId, name, license, email, passwordHash));
             }
@@ -149,11 +159,14 @@ public static class DatabaseSeeder
             AddInstructor(name3, 2);
         }
 
+        if (instructorsToRemove.Count > 0)
+            context.Instructors.RemoveRange(instructorsToRemove);
+
         if (instructorsToAdd.Count > 0)
-        {
             await context.Instructors.AddRangeAsync(instructorsToAdd);
+
+        if (instructorsToRemove.Count > 0 || instructorsToAdd.Count > 0)
             await context.SaveChangesAsync();
-        }
 
         // Demo student account — matches the credentials the frontend's
         // "Demo Credentials" button on the student login page fills in.
