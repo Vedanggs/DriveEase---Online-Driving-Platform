@@ -7,6 +7,7 @@ public sealed record InstructorNotificationDto(
     string Type,
     string StudentName,
     string Detail,
+    DateTime? ScheduledAt,
     DateTime CreatedAt,
     bool IsRead);
 

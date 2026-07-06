@@ -17,6 +17,7 @@ public sealed class GetInstructorNotificationsHandler(IInstructorNotificationRep
                 n.Type,
                 n.StudentName,
                 n.Detail,
+                n.ScheduledAt,
                 n.CreatedAt,
                 n.IsRead))
             .ToList();

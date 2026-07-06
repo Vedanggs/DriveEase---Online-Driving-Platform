@@ -118,7 +118,8 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
     this.instructorService.markNotificationRead(id).subscribe({ error: () => {} });
   }
 
-  formatScheduledAt(iso: string): string {
+  formatScheduledAt(iso: string | null): string {
+    if (!iso) return '';
     const utc = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
     return new Date(utc).toLocaleString('en-IN', {
       weekday: 'short', day: '2-digit', month: 'short',

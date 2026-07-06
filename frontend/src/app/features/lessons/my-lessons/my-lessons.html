@@ -65,14 +65,14 @@
         @for (lesson of currentLessons(); track lesson.id; let i = $index) {
           <div class="lesson-card">
             <div class="lesson-date">
-              <span class="date-day">{{ lesson.scheduledAt | date:'d' }}</span>
-              <span class="date-month">{{ lesson.scheduledAt | date:'MMM' }}</span>
+              <span class="date-day">{{ formatDay(lesson.scheduledAt) }}</span>
+              <span class="date-month">{{ formatMonth(lesson.scheduledAt) }}</span>
             </div>
             <div class="lesson-info">
               <div class="lesson-number-label">{{ ordinal(i + 1) }} Driving Lesson</div>
               <div class="lesson-time">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                {{ lesson.scheduledAt | date:'h:mm a' }}
+                {{ formatTime(lesson.scheduledAt) }}
               </div>
               <div class="lesson-duration">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -146,11 +146,11 @@
                 <div class="history-row">
                   <div class="history-num">{{ i + 1 }}</div>
                   <div class="history-date-block">
-                    <span class="hd-day">{{ lesson.scheduledAt | date:'d' }}</span>
-                    <span class="hd-month">{{ lesson.scheduledAt | date:'MMM' }}</span>
+                    <span class="hd-day">{{ formatDay(lesson.scheduledAt) }}</span>
+                    <span class="hd-month">{{ formatMonth(lesson.scheduledAt) }}</span>
                   </div>
                   <div class="history-detail">
-                    <span class="history-time">{{ lesson.scheduledAt | date:'h:mm a' }} · {{ formatDuration(lesson.duration) }}</span>
+                    <span class="history-time">{{ formatTime(lesson.scheduledAt) }} · {{ formatDuration(lesson.duration) }}</span>
                     @if (lesson.notes) {
                       <p class="history-feedback">{{ lesson.notes }}</p>
                     } @else {

@@ -20,11 +20,16 @@ public sealed class OnLessonBooked(
                   "You'll receive a reminder 24 hours before.",
             cancellationToken);
 
+        // ScheduledAt is stored raw (UTC) and formatted client-side via formatScheduledAt,
+        // same as the Upcoming/History tabs — baking a pre-formatted "... at h:mm tt UTC"
+        // string here made this notification show a different time than the rest of the
+        // dashboard, since the frontend has no way to convert an already-rendered string.
         var notification = InstructorNotification.Create(
             instructorId: evt.InstructorId,
             type: "lesson",
             studentName: evt.StudentName,
-            detail: $"booked a lesson for {evt.ScheduledAt:ddd, dd MMM} at {evt.ScheduledAt:h:mm tt} UTC");
+            detail: "booked a lesson",
+            scheduledAt: evt.ScheduledAt);
 
         await notificationRepo.AddAsync(notification, cancellationToken);
     }

@@ -1,6 +1,5 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { DatePipe } from '@angular/common';
 import { forkJoin, of } from 'rxjs';
 import { catchError, switchMap, map } from 'rxjs/operators';
 import { LessonService } from '../../../core/services/lesson.service';
@@ -19,7 +18,7 @@ interface HistoryGroup {
 @Component({
   selector: 'app-my-lessons',
   standalone: true,
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink],
   templateUrl: './my-lessons.html',
   styleUrl: './my-lessons.scss'
 })
@@ -168,11 +167,28 @@ export class MyLessonsComponent implements OnInit {
     return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
   }
 
+  // Bookings are stored as true UTC (see book-lesson.ts) but the API returns them
+  // without a trailing "Z", so treat any string missing an explicit UTC/offset
+  // marker as UTC and convert to local — same convention as the instructor dashboard.
+  private toUtcIso(iso: string): string {
+    return iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
+  }
+
+  formatTime(iso: string): string {
+    return new Date(this.toUtcIso(iso)).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  }
+
+  formatDay(iso: string): string {
+    return new Date(this.toUtcIso(iso)).toLocaleDateString('en-IN', { day: 'numeric' });
+  }
+
+  formatMonth(iso: string): string {
+    return new Date(this.toUtcIso(iso)).toLocaleDateString('en-IN', { month: 'short' });
+  }
+
   isOverdue(lesson: LessonDto): boolean {
     if (lesson.status.toLowerCase() !== 'scheduled') return false;
-    // Do NOT append Z — stored times have no timezone marker and represent local time.
-    // Parsing without Z makes JS treat them as local, matching Date.now() correctly.
-    return new Date(lesson.scheduledAt).getTime() < Date.now();
+    return new Date(this.toUtcIso(lesson.scheduledAt)).getTime() < Date.now();
   }
 
   formatEnrolledAt(iso: string): string {

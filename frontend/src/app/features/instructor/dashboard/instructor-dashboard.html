@@ -151,7 +151,7 @@
               <div class="overview-notif-row" [class.unread]="!n.isRead" (click)="markRead(n.id); activeTab.set('notifications')">
                 <span class="overview-notif-dot" [class.dot-active]="!n.isRead"></span>
                 <div class="overview-notif-body">
-                  <p class="overview-notif-text"><strong>{{ n.studentName }}</strong> {{ n.detail }}</p>
+                  <p class="overview-notif-text"><strong>{{ n.studentName }}</strong> {{ n.detail }}{{ n.scheduledAt ? ' for ' + formatScheduledAt(n.scheduledAt) : '' }}</p>
                 </div>
                 <span class="overview-notif-time">{{ formatNotifTime(n.createdAt) }}</span>
               </div>
@@ -294,7 +294,7 @@
                 </div>
                 <div class="notif-body">
                   <p class="notif-text">
-                    <strong>{{ n.studentName }}</strong> {{ n.detail }}
+                    <strong>{{ n.studentName }}</strong> {{ n.detail }}{{ n.scheduledAt ? ' for ' + formatScheduledAt(n.scheduledAt) : '' }}
                   </p>
                   <span class="notif-time">{{ formatNotifTime(n.createdAt) }}</span>
                 </div>
