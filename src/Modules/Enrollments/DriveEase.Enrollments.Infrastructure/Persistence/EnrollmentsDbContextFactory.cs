@@ -8,7 +8,7 @@ public sealed class EnrollmentsDbContextFactory : IDesignTimeDbContextFactory<En
     public EnrollmentsDbContext CreateDbContext(string[] args)
     {
         var opts = new DbContextOptionsBuilder<EnrollmentsDbContext>()
-            .UseSqlite("Data Source=driveease-enrollments.db")
+            .UseSqlServer("Server=localhost\\SQLEXPRESS;Database=DriveEase;Trusted_Connection=True;TrustServerCertificate=True;")
             .Options;
         return new EnrollmentsDbContext(opts);
     }

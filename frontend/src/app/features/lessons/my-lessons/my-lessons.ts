@@ -7,6 +7,8 @@ import { AuthService } from '../../../core/services/auth.service';
 import { EnrollmentService } from '../../../core/services/enrollment.service';
 import { SchoolService } from '../../../core/services/school.service';
 import { LessonDto } from '../../../core/models/lesson.models';
+import { StatusBadgeComponent } from '../../../shared/status-badge/status-badge';
+import { toUtcDate } from '../../../core/utils/date.utils';
 
 interface HistoryGroup {
   enrollmentId: string;
@@ -18,7 +20,7 @@ interface HistoryGroup {
 @Component({
   selector: 'app-my-lessons',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, StatusBadgeComponent],
   templateUrl: './my-lessons.html',
   styleUrl: './my-lessons.scss'
 })
@@ -35,13 +37,33 @@ export class MyLessonsComponent implements OnInit {
   readonly loading           = signal(true);
   readonly error             = signal<string | null>(null);
   readonly activeTab         = signal<'current' | 'history'>('current');
+  readonly cancellingId      = signal<string | null>(null);
+  readonly cancelError       = signal<string | null>(null);
+  readonly confirmingLessonId = signal<string | null>(null);
+  readonly statusFilter      = signal<'all' | 'scheduled' | 'completed' | 'cancelled'>('all');
 
   // Lessons for the active enrollment only, sorted ascending by date
   readonly currentLessons = computed(() => {
     const id = this.activeEnrollmentId();
     if (!id) return [];
     return [...this.lessons().filter(l => l.enrollmentId === id)]
-      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+      .sort((a, b) => toUtcDate(a.scheduledAt).getTime() - toUtcDate(b.scheduledAt).getTime());
+  });
+
+  readonly statusCounts = computed(() => {
+    const lessons = this.currentLessons();
+    return {
+      all:       lessons.length,
+      scheduled: lessons.filter(l => l.status.toLowerCase() === 'scheduled').length,
+      completed: lessons.filter(l => l.status.toLowerCase() === 'completed').length,
+      cancelled: lessons.filter(l => l.status.toLowerCase() === 'cancelled').length
+    };
+  });
+
+  readonly filteredCurrentLessons = computed(() => {
+    const filter = this.statusFilter();
+    if (filter === 'all') return this.currentLessons();
+    return this.currentLessons().filter(l => l.status.toLowerCase() === filter);
   });
 
   // Past lessons grouped by completed enrollment, most recent first
@@ -58,9 +80,9 @@ export class MyLessonsComponent implements OnInit {
         enrollmentId,
         schoolName: this.schoolNameMap().get(enrollmentId) ?? 'Previous School',
         enrolledAt: this.enrolledAtMap().get(enrollmentId) ?? '',
-        lessons: [...lessons].sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+        lessons: [...lessons].sort((a, b) => toUtcDate(a.scheduledAt).getTime() - toUtcDate(b.scheduledAt).getTime())
       }))
-      .sort((a, b) => new Date(b.enrolledAt).getTime() - new Date(a.enrolledAt).getTime());
+      .sort((a, b) => toUtcDate(b.enrolledAt).getTime() - toUtcDate(a.enrolledAt).getTime());
   });
 
   readonly hasActiveEnrollment = computed(() => !!this.activeEnrollmentId());
@@ -143,6 +165,46 @@ export class MyLessonsComponent implements OnInit {
     });
   }
 
+  requestCancel(lessonId: string) {
+    if (this.cancellingId()) return;
+    this.confirmingLessonId.set(lessonId);
+  }
+
+  dismissCancelConfirm() {
+    this.confirmingLessonId.set(null);
+  }
+
+  confirmCancel() {
+    const lessonId = this.confirmingLessonId();
+    if (!lessonId) return;
+    this.confirmingLessonId.set(null);
+    this.cancellingId.set(lessonId);
+    this.cancelError.set(null);
+    this.lessonService.cancel(lessonId).subscribe({
+      next: () => {
+        this.lessons.update(list =>
+          list.map(l => l.id === lessonId ? { ...l, status: 'Cancelled' } : l));
+        this.cancellingId.set(null);
+      },
+      error: (err) => {
+        this.cancelError.set(err?.error?.detail ?? 'Failed to cancel the lesson. Please try again.');
+        this.cancellingId.set(null);
+      }
+    });
+  }
+
+  setStatusFilter(filter: 'all' | 'scheduled' | 'completed' | 'cancelled') {
+    this.statusFilter.set(filter);
+  }
+
+  formatTimeRange(lesson: LessonDto): string {
+    const start = toUtcDate(lesson.scheduledAt);
+    const parts = lesson.duration.split(':').map(Number);
+    const end = new Date(start.getTime() + (parts[0] * 60 + (parts[1] ?? 0)) * 60000);
+    const fmt = (d: Date) => d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    return `${fmt(start)} – ${fmt(end)}`;
+  }
+
   formatDuration(duration: string): string {
     if (!duration) return '—';
     const parts = duration.split(':').map(Number);
@@ -152,49 +214,32 @@ export class MyLessonsComponent implements OnInit {
     return `${h} hr ${m} min`;
   }
 
-  statusClass(status: string): string {
-    switch (status?.toLowerCase()) {
-      case 'scheduled': return 'status-scheduled';
-      case 'completed': return 'status-completed';
-      case 'cancelled':  return 'status-cancelled';
-      default: return '';
-    }
-  }
-
   ordinal(n: number): string {
     const s = ['th', 'st', 'nd', 'rd'];
     const v = n % 100;
     return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
   }
 
-  // Bookings are stored as true UTC (see book-lesson.ts) but the API returns them
-  // without a trailing "Z", so treat any string missing an explicit UTC/offset
-  // marker as UTC and convert to local — same convention as the instructor dashboard.
-  private toUtcIso(iso: string): string {
-    return iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
-  }
-
   formatTime(iso: string): string {
-    return new Date(this.toUtcIso(iso)).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    return toUtcDate(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
   }
 
   formatDay(iso: string): string {
-    return new Date(this.toUtcIso(iso)).toLocaleDateString('en-IN', { day: 'numeric' });
+    return toUtcDate(iso).toLocaleDateString('en-IN', { day: 'numeric' });
   }
 
   formatMonth(iso: string): string {
-    return new Date(this.toUtcIso(iso)).toLocaleDateString('en-IN', { month: 'short' });
+    return toUtcDate(iso).toLocaleDateString('en-IN', { month: 'short' });
   }
 
   isOverdue(lesson: LessonDto): boolean {
     if (lesson.status.toLowerCase() !== 'scheduled') return false;
-    return new Date(this.toUtcIso(lesson.scheduledAt)).getTime() < Date.now();
+    return toUtcDate(lesson.scheduledAt).getTime() < Date.now();
   }
 
   formatEnrolledAt(iso: string): string {
     if (!iso) return '';
-    const utc = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
-    return new Date(utc).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+    return toUtcDate(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
   completedCount(group: HistoryGroup): number {

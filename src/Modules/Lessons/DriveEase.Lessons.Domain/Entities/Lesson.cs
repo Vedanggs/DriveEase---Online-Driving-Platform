@@ -63,5 +63,7 @@ public sealed class Lesson : AggregateRoot<Guid>
             throw new InvalidOperationException("Cannot cancel a completed lesson.");
 
         Status = LessonStatus.Cancelled;
+
+        RaiseDomainEvent(LessonCancelledEvent.Create(Id, StudentId, StudentName, InstructorId, ScheduledAt));
     }
 }

@@ -37,6 +37,18 @@ export class SchoolsListComponent implements OnInit {
     return this.schools().filter(s => s.name.toLowerCase().startsWith(q));
   });
 
+  readonly currentPage = signal(1);
+  readonly pageSize = 6;
+
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredSchools().length / this.pageSize))
+  );
+
+  readonly paginatedSchools = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filteredSchools().slice(start, start + this.pageSize);
+  });
+
   ngOnInit() {
     forkJoin({
       schools:    this.schoolService.getAll(),
@@ -45,7 +57,8 @@ export class SchoolsListComponent implements OnInit {
       next: ({ schools, enrollment }) => {
         const enrolledId = enrollment?.drivingSchoolId;
         this.schools.set(schools.sort((a, b) =>
-          (b.id === enrolledId ? 1 : 0) - (a.id === enrolledId ? 1 : 0)
+          ((b.id === enrolledId ? 1 : 0) - (a.id === enrolledId ? 1 : 0)) ||
+          a.name.localeCompare(b.name)
         ));
         this.myEnrollment.set(enrollment);
         this.loading.set(false);
@@ -55,6 +68,19 @@ export class SchoolsListComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  onSearchChange(value: string) {
+    this.searchQuery.set(value);
+    this.currentPage.set(1);
+  }
+
+  nextPage() {
+    this.currentPage.update(p => Math.min(p + 1, this.totalPages()));
+  }
+
+  prevPage() {
+    this.currentPage.update(p => Math.max(p - 1, 1));
   }
 
   isEnrolledHere(schoolId: string): boolean {

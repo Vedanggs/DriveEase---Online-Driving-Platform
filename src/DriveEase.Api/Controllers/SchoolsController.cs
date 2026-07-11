@@ -1,8 +1,12 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using DriveEase.Schools.Application.Commands.RegisterInstructor;
 using DriveEase.Schools.Application.Commands.RegisterSchool;
+using DriveEase.Schools.Application.Commands.SetInstructorAvailability;
 using DriveEase.Schools.Application.Queries.GetAllSchools;
+using DriveEase.Schools.Application.Queries.GetInstructorById;
 using DriveEase.Schools.Application.Queries.GetSchool;
 using DriveEase.Schools.Application.Queries.GetSchoolInstructors;
 using MediatR;
@@ -55,6 +59,46 @@ public sealed class SchoolsController(ISender sender) : ControllerBase
             new RegisterInstructorCommand(schoolId, request.FullName, request.LicenseNumber, request.Email, request.Password),
             cancellationToken);
         return Ok(new { id });
+    }
+
+    [Authorize(Policy = "Instructor")]
+    [HttpGet("instructors/me")]
+    public async Task<IActionResult> GetMyProfile(CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerId(out var instructorId))
+            return Unauthorized();
+
+        var dto = await sender.Send(new GetInstructorByIdQuery(instructorId), cancellationToken);
+        return dto is null ? NotFound() : Ok(dto);
+    }
+
+    [Authorize(Policy = "Instructor")]
+    [HttpPost("instructors/me/unavailable")]
+    public async Task<IActionResult> MarkMyselfUnavailable(CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerId(out var instructorId))
+            return Unauthorized();
+
+        await sender.Send(new SetInstructorAvailabilityCommand(instructorId, false), cancellationToken);
+        return NoContent();
+    }
+
+    [Authorize(Policy = "Instructor")]
+    [HttpPost("instructors/me/available")]
+    public async Task<IActionResult> MarkMyselfAvailable(CancellationToken cancellationToken)
+    {
+        if (!TryGetCallerId(out var instructorId))
+            return Unauthorized();
+
+        await sender.Send(new SetInstructorAvailabilityCommand(instructorId, true), cancellationToken);
+        return NoContent();
+    }
+
+    private bool TryGetCallerId(out Guid instructorId)
+    {
+        var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                  ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(sub, out instructorId);
     }
 }
 

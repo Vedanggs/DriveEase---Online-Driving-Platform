@@ -224,6 +224,13 @@ var sqlConn = builder.Configuration.GetConnectionString("DefaultConnection");
 var sqlResolved = !string.IsNullOrWhiteSpace(sqlConn) &&
                   !sqlConn.StartsWith("@Microsoft.KeyVault", StringComparison.OrdinalIgnoreCase);
 
+// Stable local fallback: %LocalAppData% survives sign-out/restart, unlike %TEMP%
+// which the OS/antivirus/Storage Sense can purge at any time.
+var localDbDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DriveEase");
+
+string DbPath(string module) =>
+    $"Data Source={Path.Combine(localDbDir, $"driveease-{module}.db")}";
+
 if (sqlResolved)
 {
     builder.Services
@@ -234,8 +241,7 @@ if (sqlResolved)
 }
 else
 {
-    static string DbPath(string module) =>
-        $"Data Source={Path.Combine(Path.GetTempPath(), $"driveease-{module}.db")}";
+    Directory.CreateDirectory(localDbDir);
     builder.Services
         .AddEnrollmentsModule(DbPath("enrollments"))
         .AddSchoolsModule(DbPath("schools"))
@@ -276,7 +282,7 @@ builder.Services.AddMediatR(cfg =>
 
 var notificationsConn = sqlResolved
     ? sqlConn!
-    : $"Data Source={Path.Combine(Path.GetTempPath(), "driveease-notifications.db")}";
+    : DbPath("notifications");
 
 builder.Services.AddNotificationsModule(notificationsConn);
 builder.Services.AddHostedService<OutboxRelayWorker>();

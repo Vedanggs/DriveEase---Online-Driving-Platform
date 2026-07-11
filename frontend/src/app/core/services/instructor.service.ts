@@ -33,4 +33,15 @@ export class InstructorService {
       {}
     );
   }
+
+  getMyProfile() {
+    return this.http.get<{ id: string; fullName: string; licenseNumber: string; isAvailable: boolean }>(
+      `${environment.apiUrl}/api/v1/schools/instructors/me`
+    );
+  }
+
+  setAvailability(isAvailable: boolean) {
+    const action = isAvailable ? 'available' : 'unavailable';
+    return this.http.post<void>(`${environment.apiUrl}/api/v1/schools/instructors/me/${action}`, {});
+  }
 }

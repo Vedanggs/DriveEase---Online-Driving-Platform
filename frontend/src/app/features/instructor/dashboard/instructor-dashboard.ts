@@ -4,6 +4,7 @@ import { InstructorService } from '../../../core/services/instructor.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { InstructorNotificationDto } from '../../../core/models/notification.models';
 import { InstructorLessonDto } from '../../../core/models/lesson.models';
+import { toUtcDate } from '../../../core/utils/date.utils';
 
 interface InstructorSession {
   instructorId: string;
@@ -42,6 +43,9 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   feedbackText = '';
   readonly submitting = signal(false);
 
+  readonly isAvailable          = signal(true);
+  readonly togglingAvailability = signal(false);
+
   readonly unreadCount      = computed(() => this.notifications().filter(n => !n.isRead).length);
   readonly upcomingLessons  = computed(() => this.lessons().filter(l => l.status === 'Scheduled'));
   readonly completedLessons = computed(() => this.lessons().filter(l => l.status === 'Completed'));
@@ -55,7 +59,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
       map.get(l.studentId)!.lessons.push(l);
     }
     for (const g of map.values()) {
-      g.lessons.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+      g.lessons.sort((a, b) => toUtcDate(a.scheduledAt).getTime() - toUtcDate(b.scheduledAt).getTime());
     }
     return Array.from(map.values());
   });
@@ -80,6 +84,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
 
     this.loadNotifications();
     this.loadLessons();
+    this.loadMyProfile();
 
     // Poll for new notifications every 30 seconds
     this.pollTimer = setInterval(() => this.loadNotifications(), 30_000);
@@ -109,6 +114,27 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  private loadMyProfile() {
+    this.instructorService.getMyProfile().subscribe({
+      next: profile => this.isAvailable.set(profile.isAvailable),
+      error: () => {}
+    });
+  }
+
+  toggleAvailability() {
+    if (this.togglingAvailability()) return;
+    const next = !this.isAvailable();
+    this.isAvailable.set(next);
+    this.togglingAvailability.set(true);
+    this.instructorService.setAvailability(next).subscribe({
+      next: () => this.togglingAvailability.set(false),
+      error: () => {
+        this.isAvailable.set(!next);
+        this.togglingAvailability.set(false);
+      }
+    });
+  }
+
   markRead(id: string) {
     if (this.localReadIds.has(id)) return;
     this.localReadIds.add(id);
@@ -120,8 +146,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
 
   formatScheduledAt(iso: string | null): string {
     if (!iso) return '';
-    const utc = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
-    return new Date(utc).toLocaleString('en-IN', {
+    return toUtcDate(iso).toLocaleString('en-IN', {
       weekday: 'short', day: '2-digit', month: 'short',
       hour: '2-digit', minute: '2-digit', hour12: true
     });
@@ -137,8 +162,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   }
 
   formatNotifTime(iso: string): string {
-    const utc = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
-    const d = new Date(utc);
+    const d = toUtcDate(iso);
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffMin = Math.floor(diffMs / 60_000);

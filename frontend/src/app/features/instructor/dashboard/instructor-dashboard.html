@@ -43,6 +43,12 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         {{ schoolName() }}
       </div>
+      <button class="inav-availability-toggle" [class.is-available]="isAvailable()"
+              [disabled]="togglingAvailability()" (click)="toggleAvailability()"
+              title="Click to toggle your availability to students">
+        <span class="availability-dot"></span>
+        {{ isAvailable() ? 'Available' : 'Unavailable' }}
+      </button>
       <span class="inav-divider"></span>
       <span class="inav-user">{{ instructorName() }}</span>
       <button class="inav-logout" (click)="logout()">Sign out</button>
@@ -149,7 +155,10 @@
             </div>
             @for (n of notifications().slice(0, 3); track n.id) {
               <div class="overview-notif-row" [class.unread]="!n.isRead" (click)="markRead(n.id); activeTab.set('notifications')">
-                <span class="overview-notif-dot" [class.dot-active]="!n.isRead"></span>
+                <span class="overview-notif-avatar">
+                  {{ n.studentName.charAt(0).toUpperCase() }}
+                  @if (!n.isRead) { <span class="overview-notif-avatar-dot"></span> }
+                </span>
                 <div class="overview-notif-body">
                   <p class="overview-notif-text"><strong>{{ n.studentName }}</strong> {{ n.detail }}{{ n.scheduledAt ? ' for ' + formatScheduledAt(n.scheduledAt) : '' }}</p>
                 </div>

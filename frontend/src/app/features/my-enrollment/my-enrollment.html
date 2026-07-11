@@ -36,10 +36,7 @@
         </div>
         <div class="header-text">
           <h2>{{ school()?.name ?? 'Your School' }}</h2>
-          <span class="status-badge" [class.status-active]="enrollment()!.status === 'Active'">
-            <span class="status-dot"></span>
-            {{ enrollment()!.status }}
-          </span>
+          <app-status-badge [status]="enrollment()!.status" [showDot]="true" />
         </div>
       </div>
 

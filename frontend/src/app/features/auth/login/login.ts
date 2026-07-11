@@ -115,6 +115,7 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
 
   fillStudentDemo() {
     this.form.setValue({ email: 'test@gmail.com', password: 'Test@123' });
+    this.submit();
   }
 
   useDemoInstructor(instructor: DemoInstructor) {

@@ -19,14 +19,14 @@ namespace DriveEase.Students.Infrastructure.Migrations
                 schema: "students",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Token = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    StudentId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Family = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    RevokedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    ReplacedByToken = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Token = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    StudentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Family = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RevokedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ReplacedByToken = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -38,13 +38,13 @@ namespace DriveEase.Students.Infrastructure.Migrations
                 schema: "students",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    FullName = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    Email = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    PhoneNumber = table.Column<string>(type: "TEXT", maxLength: 30, nullable: false),
-                    DateOfBirth = table.Column<DateOnly>(type: "TEXT", nullable: false),
-                    RegisteredAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    PasswordHash = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    FullName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    DateOfBirth = table.Column<DateOnly>(type: "date", nullable: false),
+                    RegisteredAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
                 },
                 constraints: table =>
                 {

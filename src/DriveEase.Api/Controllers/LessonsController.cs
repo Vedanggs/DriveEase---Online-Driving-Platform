@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using DriveEase.Lessons.Application.Commands.BookLesson;
+using DriveEase.Lessons.Application.Commands.CancelLesson;
 using DriveEase.Lessons.Application.Commands.CompleteLesson;
 using DriveEase.Lessons.Application.Queries.GetInstructorLessons;
 using DriveEase.Lessons.Application.Queries.GetLesson;
@@ -61,8 +62,15 @@ public sealed class LessonsController(ISender sender) : ControllerBase
     {
         if (!DateTime.TryParse(date, out var parsedDate))
             return BadRequest("Invalid date format. Use YYYY-MM-DD.");
-        var slots = await sender.Send(new GetInstructorBookedSlotsQuery(instructorId, parsedDate.ToUniversalTime()), cancellationToken);
+        var slots = await sender.Send(new GetInstructorBookedSlotsQuery(instructorId, DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc)), cancellationToken);
         return Ok(slots);
+    }
+
+    [HttpPost("{id:guid}/cancel")]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
+    {
+        await sender.Send(new CancelLessonCommand(id), cancellationToken);
+        return NoContent();
     }
 
     [AllowAnonymous]

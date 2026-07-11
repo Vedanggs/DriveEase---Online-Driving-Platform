@@ -9,11 +9,12 @@ import { AuthService } from '../../core/services/auth.service';
 import { EnrollmentDto } from '../../core/models/enrollment.models';
 import { SchoolDetail } from '../../core/models/school.models';
 import { LessonDto } from '../../core/models/lesson.models';
+import { StatusBadgeComponent } from '../../shared/status-badge/status-badge';
 
 @Component({
   selector: 'app-my-enrollment',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, StatusBadgeComponent],
   templateUrl: './my-enrollment.html',
   styleUrl: './my-enrollment.scss'
 })

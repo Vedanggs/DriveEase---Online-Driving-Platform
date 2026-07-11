@@ -19,16 +19,16 @@ namespace DriveEase.Enrollments.Infrastructure.Migrations
                 schema: "enrollments",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    StudentId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    DrivingSchoolId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    InstructorId = table.Column<Guid>(type: "TEXT", nullable: true),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StudentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    DrivingSchoolId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    InstructorId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     Fee = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    PaymentStatus = table.Column<string>(type: "TEXT", nullable: false),
-                    Status = table.Column<string>(type: "TEXT", nullable: false),
-                    EnrolledAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    PaymentConfirmedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    CancelledAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    PaymentStatus = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    EnrolledAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    PaymentConfirmedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CancelledAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -40,12 +40,14 @@ namespace DriveEase.Enrollments.Infrastructure.Migrations
                 schema: "enrollments",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    EventType = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
-                    Payload = table.Column<string>(type: "TEXT", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    ProcessedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    Error = table.Column<string>(type: "TEXT", nullable: true)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    EventType = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Payload = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ProcessedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Error = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RetryCount = table.Column<int>(type: "int", nullable: false),
+                    DeadLettered = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {

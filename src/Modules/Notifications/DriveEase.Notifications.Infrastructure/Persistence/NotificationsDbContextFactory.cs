@@ -8,7 +8,7 @@ public sealed class NotificationsDbContextFactory : IDesignTimeDbContextFactory<
     public NotificationsDbContext CreateDbContext(string[] args)
     {
         var opts = new DbContextOptionsBuilder<NotificationsDbContext>()
-            .UseSqlite("Data Source=driveease-notifications.db")
+            .UseSqlServer("Server=localhost\\SQLEXPRESS;Database=DriveEase;Trusted_Connection=True;TrustServerCertificate=True;")
             .Options;
         return new NotificationsDbContext(opts);
     }

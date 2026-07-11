@@ -47,11 +47,19 @@
 }
 
 // ── Tab nav ───────────────────────────────────────────────────────────────────
+.tab-nav-sticky {
+  position: sticky;
+  top: 68px;
+  z-index: 50;
+  background: var(--bg);
+  margin: 0 -1.5rem 2rem;
+  padding: 0 1.5rem;
+}
+
 .tab-nav {
   display: flex;
   gap: 0;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 2rem;
 }
 
 .tab-btn {
@@ -91,6 +99,44 @@
   border: 1px solid var(--primary-border);
 }
 
+// ── Filter chips ──────────────────────────────────────────────────────────────
+.filter-chips {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.875rem 0 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+
+  &:hover { color: var(--text); border-color: var(--border-blue-hover); }
+
+  &.active {
+    color: var(--primary);
+    background: var(--primary-light);
+    border-color: var(--primary-border);
+  }
+
+  .chip-count {
+    font-size: 0.7rem;
+    font-weight: 700;
+    opacity: 0.75;
+  }
+}
+
 // ── Lessons list ──────────────────────────────────────────────────────────────
 .lessons-list {
   display: flex;
@@ -111,6 +157,19 @@
   transition: box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease;
 
   &:hover { box-shadow: var(--shadow-card-hover); transform: translateY(-4px); border-color: var(--border-blue-hover); }
+
+  &--cancelled {
+    opacity: 0.62;
+    background: var(--bg);
+
+    &:hover { transform: none; box-shadow: var(--shadow-sm); border-color: var(--border); }
+
+    .lesson-date {
+      background: var(--border);
+      border-color: var(--border);
+      .date-day, .date-month { color: var(--text-muted); }
+    }
+  }
 }
 
 // ── Date block ────────────────────────────────────────────────────────────────
@@ -190,25 +249,6 @@
     margin-top: 0.25rem;
     width: fit-content;
   }
-}
-
-// ── Status badge ──────────────────────────────────────────────────────────────
-.lesson-status {
-  flex-shrink: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.3rem 0.75rem;
-  border-radius: 20px;
-  letter-spacing: 0.02em;
-  background: var(--border);
-  color: var(--text-muted);
-  white-space: nowrap;
-  align-self: flex-start;
-
-  &.status-scheduled { background: var(--primary-light); color: var(--primary); border: 1px solid var(--primary-border); }
-  &.status-completed { background: var(--success-light); color: var(--success); border: 1px solid var(--success-border); }
-  &.status-cancelled { background: var(--danger-light); color: var(--danger); border: 1px solid var(--danger-border); }
-  &.status-overdue   { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
 }
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
@@ -358,4 +398,131 @@
   color: var(--text-faint);
   margin: 0;
   font-style: italic;
+}
+
+.cancel-error-banner {
+  font-size: 0.8125rem;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 0.625rem 0.875rem;
+  margin-bottom: 0.875rem;
+}
+
+.btn-cancel-lesson {
+  margin-top: 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #b91c1c;
+  background: transparent;
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+  padding: 0.375rem 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover:not(:disabled) { background: #fef2f2; }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+.btn-rebook-lesson {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1px solid var(--primary-border);
+  border-radius: 7px;
+  padding: 0.375rem 0.875rem;
+  text-decoration: none;
+  width: fit-content;
+  transition: background 0.15s ease;
+
+  &:hover { background: rgba(37,99,235,0.16); }
+}
+
+// ── Cancel confirmation modal ───────────────────────────────────────────────────
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadein-backdrop 0.15s ease;
+}
+
+.modal-card {
+  background: var(--card-bg);
+  border-radius: 18px;
+  padding: 1.75rem;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  animation: modal-pop 0.18s ease;
+
+  h3 { font-size: 1.0625rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; }
+  p  { font-size: 0.875rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1.5rem; }
+}
+
+.modal-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #b91c1c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-modal-secondary, .btn-modal-danger {
+  flex: 1;
+  height: 42px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-modal-secondary {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+
+  &:hover { background: var(--bg); border-color: var(--border-hover); }
+}
+
+.btn-modal-danger {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+
+  &:hover { background: #b91c1c; }
+}
+
+@keyframes fadein-backdrop {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.95) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }

@@ -19,13 +19,14 @@ namespace DriveEase.Notifications.Infrastructure.Migrations
                 schema: "notifications",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    InstructorId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Type = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    StudentName = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    Detail = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    IsRead = table.Column<bool>(type: "INTEGER", nullable: false)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    InstructorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    StudentName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Detail = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    ScheduledAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsRead = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {

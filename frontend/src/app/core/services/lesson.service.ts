@@ -16,4 +16,8 @@ export class LessonService {
   book(request: BookLessonRequest) {
     return this.http.post<{ id: string }>(`${environment.apiUrl}/api/v1/lessons`, request);
   }
+
+  cancel(lessonId: string) {
+    return this.http.post<void>(`${environment.apiUrl}/api/v1/lessons/${lessonId}/cancel`, {});
+  }
 }
