@@ -224,9 +224,14 @@ var sqlConn = builder.Configuration.GetConnectionString("DefaultConnection");
 var sqlResolved = !string.IsNullOrWhiteSpace(sqlConn) &&
                   !sqlConn.StartsWith("@Microsoft.KeyVault", StringComparison.OrdinalIgnoreCase);
 
-// Stable local fallback: %LocalAppData% survives sign-out/restart, unlike %TEMP%
-// which the OS/antivirus/Storage Sense can purge at any time.
-var localDbDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DriveEase");
+// Stable local fallback on Windows: %LocalAppData% survives sign-out/restart,
+// unlike %TEMP% which the OS/antivirus/Storage Sense can purge at any time.
+// On Linux (e.g. Render's container, which has no real DB configured and
+// lands here too) %LocalAppData% resolves under /app, which the container's
+// filesystem doesn't allow writing to — stick with the system temp dir there.
+var localDbDir = OperatingSystem.IsWindows()
+    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DriveEase")
+    : Path.Combine(Path.GetTempPath(), "driveease");
 
 string DbPath(string module) =>
     $"Data Source={Path.Combine(localDbDir, $"driveease-{module}.db")}";
