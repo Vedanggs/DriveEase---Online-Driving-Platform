@@ -257,7 +257,14 @@ var sbResolved = !string.IsNullOrWhiteSpace(sbNamespace) &&
                  !sbNamespace.StartsWith("@Microsoft.KeyVault", StringComparison.OrdinalIgnoreCase);
 
 if (sbResolved)
+{
     builder.Services.AddSingleton<IEventBus>(new AzureServiceBusEventBus(sbNamespace!));
+    builder.Services.AddSingleton(sp => new ServiceBusConsumerWorker(
+        sbNamespace!,
+        sp.GetRequiredService<IServiceScopeFactory>(),
+        sp.GetRequiredService<ILogger<ServiceBusConsumerWorker>>()));
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<ServiceBusConsumerWorker>());
+}
 else
     builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
 
