@@ -82,6 +82,26 @@
   border-bottom: 1px solid var(--border);
 }
 
+.btn-download-pdf {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 36px;
+  padding: 0 1rem;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+
+  &:hover { color: var(--text); border-color: var(--border-hover); background: var(--bg); }
+}
+
 .school-icon-wrap {
   width: 52px;
   height: 52px;
@@ -95,6 +115,8 @@
 }
 
 .header-text {
+  flex: 1;
+
   h2 {
     font-size: 1.25rem;
     font-weight: 700;
@@ -352,6 +374,8 @@
   border-radius: 24px;
   font-weight: 600;
   font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
   text-decoration: none;
   transition: border-color 0.15s, background 0.15s;
 

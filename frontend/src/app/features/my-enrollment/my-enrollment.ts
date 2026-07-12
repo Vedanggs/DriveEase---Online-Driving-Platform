@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
+import jsPDF from 'jspdf';
 import { EnrollmentService } from '../../core/services/enrollment.service';
 import { SchoolService } from '../../core/services/school.service';
 import { LessonService } from '../../core/services/lesson.service';
@@ -67,6 +68,39 @@ export class MyEnrollmentComponent implements OnInit {
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 2000);
     });
+  }
+
+  downloadPdf() {
+    const e = this.enrollment();
+    if (!e) return;
+    const school = this.school();
+
+    const doc = new jsPDF();
+    let y = 20;
+
+    doc.setFontSize(18);
+    doc.text('DriveEase — Enrollment Summary', 14, y);
+    y += 12;
+
+    doc.setFontSize(11);
+    const line = (label: string, value: string) => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${label}:`, 14, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(value, 60, y);
+      y += 8;
+    };
+
+    line('School', school?.name ?? '—');
+    line('Address', school?.address ?? '—');
+    line('Enrollment ID', e.id);
+    line('Status', e.status);
+    line('Fee Paid', `Rs. ${e.fee.toLocaleString('en-IN')}`);
+    line('Payment Status', e.paymentStatus);
+    line('Enrolled On', this.formatDate(e.enrolledAt));
+    line('Payment Confirmed', this.formatDate(e.paymentConfirmedAt));
+
+    doc.save(`DriveEase-Enrollment-${e.id.slice(0, 8)}.pdf`);
   }
 
   formatDate(dateStr: string | null): string {
