@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { LessonService } from '../../../core/services/lesson.service';
@@ -15,6 +15,17 @@ interface InstructorOption {
 
 const MAX_LESSONS = 5;
 const MAX_PENDING_LESSONS = 2;
+const BOOKING_WINDOW_DAYS = 10;
+
+// Native <input type="date"> has no way to grey out individual days of the
+// week — min/max only bound the whole range. Sundays are blocked here instead,
+// surfaced as a field error like any other validation failure.
+function notSundayValidator(control: AbstractControl): ValidationErrors | null {
+  if (!control.value) return null;
+  const [year, month, day] = control.value.split('-').map(Number);
+  const isSunday = new Date(year, month - 1, day).getDay() === 0;
+  return isSunday ? { sunday: true } : null;
+}
 
 @Component({
   selector: 'app-book-lesson',
@@ -57,7 +68,7 @@ export class BookLessonComponent implements OnInit {
 
   readonly form = this.fb.group({
     instructorId: ['', Validators.required],
-    date: ['', Validators.required],
+    date: ['', [Validators.required, notSundayValidator]],
     timeSlot: ['', Validators.required],
     durationHours: ['01:00:00', Validators.required]
   });
@@ -72,7 +83,9 @@ export class BookLessonComponent implements OnInit {
     const date = this.selectedDate();
     let slots = this.allTimeSlots;
     if (date && date === this.localDateStr()) {
-      const currentHour = new Date().getHours();
+      const now = new Date()
+      let currentHour = now.getHours();
+      if(now.getMinutes() > 35) currentHour ++; // Round up to the next hour if minutes > 35
       slots = slots.filter(slot => parseInt(slot, 10) > currentHour);
     }
     return slots;
@@ -109,7 +122,7 @@ export class BookLessonComponent implements OnInit {
 
   get maxDate(): string {
     const d = new Date();
-    d.setFullYear(d.getFullYear() + 1);
+    d.setDate(d.getDate() + BOOKING_WINDOW_DAYS);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 

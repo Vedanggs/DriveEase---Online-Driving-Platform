@@ -127,7 +127,9 @@
               [max]="maxDate"
               [attr.aria-invalid]="form.controls.date.invalid && form.controls.date.touched"
             />
-            @if (form.controls.date.invalid && form.controls.date.touched) {
+            @if (form.controls.date.hasError('sunday') && form.controls.date.touched) {
+              <span class="field-error" role="alert">Sundays are unavailable. Please choose another date.</span>
+            } @else if (form.controls.date.invalid && form.controls.date.touched) {
               <span class="field-error" role="alert">Please select a date</span>
             }
           </div>
