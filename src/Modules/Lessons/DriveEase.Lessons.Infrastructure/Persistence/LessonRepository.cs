@@ -74,6 +74,29 @@ public sealed class LessonRepository(LessonsDbContext dbContext) : ILessonReposi
             l.ScheduledAt.Add(l.Duration) > scheduledAt);
     }
 
+    // A student can't attend two overlapping lessons — even with different instructors.
+    // Same windowed-load-then-overlap-in-memory approach as HasConflictAsync, but scoped
+    // to the student rather than the instructor.
+    public async Task<bool> HasStudentConflictAsync(Guid studentId, DateTime scheduledAt, TimeSpan duration,
+        CancellationToken cancellationToken = default)
+    {
+        var windowStart = scheduledAt.AddHours(-2);
+        var windowEnd   = scheduledAt.Add(duration).AddHours(2);
+
+        var candidates = await dbContext.Lessons
+            .AsNoTracking()
+            .Where(l => l.StudentId == studentId
+                     && l.Status != LessonStatus.Cancelled
+                     && l.ScheduledAt >= windowStart
+                     && l.ScheduledAt < windowEnd)
+            .ToListAsync(cancellationToken);
+
+        var newEnd = scheduledAt.Add(duration);
+        return candidates.Any(l =>
+            l.ScheduledAt < newEnd &&
+            l.ScheduledAt.Add(l.Duration) > scheduledAt);
+    }
+
     public async Task<IReadOnlyList<Lesson>> GetBookedSlotsAsync(Guid instructorId, DateTime dateUtc,
         CancellationToken cancellationToken = default)
     {

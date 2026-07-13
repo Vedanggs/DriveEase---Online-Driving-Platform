@@ -13,6 +13,7 @@ public interface ILessonRepository
     Task<int> CountCompletedByEnrollmentAsync(Guid enrollmentId, CancellationToken cancellationToken = default);
     Task<int> CountScheduledByEnrollmentAsync(Guid enrollmentId, CancellationToken cancellationToken = default);
     Task<bool> HasConflictAsync(Guid instructorId, DateTime scheduledAt, TimeSpan duration, CancellationToken cancellationToken = default);
+    Task<bool> HasStudentConflictAsync(Guid studentId, DateTime scheduledAt, TimeSpan duration, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Lesson>> GetBookedSlotsAsync(Guid instructorId, DateTime dateUtc, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Lesson>> GetExpiredScheduledAsync(DateTime cutoffUtc, CancellationToken cancellationToken = default);
     Task AddAsync(Lesson lesson, CancellationToken cancellationToken = default);

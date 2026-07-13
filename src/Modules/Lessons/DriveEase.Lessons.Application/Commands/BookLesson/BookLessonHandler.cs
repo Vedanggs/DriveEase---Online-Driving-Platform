@@ -43,6 +43,14 @@ public sealed class BookLessonHandler(
             throw new InvalidOperationException(
                 $"{request.InstructorName} is already booked at this time. Please choose a different slot.");
 
+        // A student can't be in two lessons at once — block overlapping bookings even
+        // when the other lesson is with a different instructor.
+        var studentConflict = await repository.HasStudentConflictAsync(
+            request.StudentId, request.ScheduledAt, request.Duration, cancellationToken);
+        if (studentConflict)
+            throw new InvalidOperationException(
+                "You already have a lesson booked at this time. Please choose a different slot.");
+
         var lesson = Lesson.Book(
             request.EnrollmentId,
             request.StudentId,
