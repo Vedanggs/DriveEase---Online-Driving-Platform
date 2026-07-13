@@ -70,8 +70,13 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
         </div>
         <div>
-          <strong>All 5 lessons completed</strong>
-          <p>The instructor has confirmed all 5 lessons in your current enrollment. Your enrollment will close shortly. You can then re-enroll for more lessons.</p>
+          @if (fullyCompleted()) {
+            <strong>All 5 lessons completed</strong>
+            <p>The instructor has confirmed all 5 lessons in your current enrollment. Your enrollment will close shortly. You can then re-enroll for more lessons.</p>
+          } @else {
+            <strong>Lesson package full</strong>
+            <p>You've used all 5 lessons in this package ({{ bookedCount() }} completed, {{ scheduledCount() }} scheduled). Wait for your remaining lesson{{ scheduledCount() === 1 ? '' : 's' }} to be completed before booking more.</p>
+          }
         </div>
       </div>
     } @else if (atPendingLimit()) {

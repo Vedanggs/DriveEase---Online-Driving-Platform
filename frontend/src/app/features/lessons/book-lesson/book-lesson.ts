@@ -51,8 +51,12 @@ export class BookLessonComponent implements OnInit {
 
   readonly bookedCount = signal(0);
   readonly scheduledCount = signal(0);
-  readonly remainingLessons = computed(() => Math.max(0, MAX_LESSONS - this.bookedCount()));
+  // Completed + currently-scheduled together must not exceed the package size — matches
+  // the backend's BookLessonHandler check, otherwise the UI would still offer a 6th slot
+  // that the server would then reject.
+  readonly remainingLessons = computed(() => Math.max(0, MAX_LESSONS - this.bookedCount() - this.scheduledCount()));
   readonly atLimit = computed(() => this.remainingLessons() === 0);
+  readonly fullyCompleted = computed(() => this.bookedCount() >= MAX_LESSONS);
   readonly atPendingLimit = computed(() => this.scheduledCount() >= MAX_PENDING_LESSONS);
   readonly maxLessons = MAX_LESSONS;
   readonly maxPendingLessons = MAX_PENDING_LESSONS;

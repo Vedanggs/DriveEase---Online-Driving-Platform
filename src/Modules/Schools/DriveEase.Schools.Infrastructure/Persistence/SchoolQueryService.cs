@@ -27,6 +27,7 @@ public sealed class SchoolQueryService(SchoolsDbContext dbContext) : ISchoolQuer
             SELECT {idCol}, Name, Address, ContactEmail
             FROM {table}
             WHERE IsActive = 1
+            ORDER BY Name
             """;
 
         var rows = await conn.QueryAsync<SchoolSummaryRow>(sql);

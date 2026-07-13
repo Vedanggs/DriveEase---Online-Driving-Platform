@@ -85,7 +85,10 @@ public sealed class HappyPathE2ETests(DriveEaseWebApplicationFactory factory, IT
         output.WriteLine("Instructor assigned");
 
         // ── Step 8: Book a lesson ─────────────────────────────────────────────
-        var scheduledAt = DateTime.UtcNow.AddHours(48).ToString("o");
+        // Jittered rather than a fixed +48h offset — a hardcoded offset can collide with
+        // another lesson at the same instructor+time (seen intermittently in this suite),
+        // since HasConflictAsync checks a multi-hour window around the requested slot.
+        var scheduledAt = DateTime.UtcNow.AddHours(48).AddMinutes(Random.Shared.Next(1, 500)).ToString("o");
         var lesson = await PostJsonAsync<IdResponse>(authClient,
             "/api/v1/lessons",
             new

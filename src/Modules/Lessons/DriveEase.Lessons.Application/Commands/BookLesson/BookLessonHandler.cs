@@ -20,16 +20,18 @@ public sealed class BookLessonHandler(
         if (enrollment.StudentId != request.StudentId)
             throw new UnauthorizedAccessException("You can only book lessons for your own enrollment.");
 
-        // Only instructor-confirmed (Completed) lessons count toward the 5-lesson package.
-        // Scheduled (pending) and Cancelled lessons do not consume a slot.
+        // Completed + currently-scheduled must never exceed the package size — otherwise a lesson
+        // booked while earlier ones are still pending can outlive the package (it stays Scheduled
+        // forever once the other 5 complete and the enrollment auto-closes).
         var completedCount = await repository.CountCompletedByEnrollmentAsync(request.EnrollmentId, cancellationToken);
-        if (completedCount >= MaxLessonsPerEnrollment)
+        var scheduledCount = await repository.CountScheduledByEnrollmentAsync(request.EnrollmentId, cancellationToken);
+
+        if (completedCount + scheduledCount >= MaxLessonsPerEnrollment)
             throw new InvalidOperationException(
                 $"Lesson package limit reached. Maximum {MaxLessonsPerEnrollment} lessons per enrollment.");
 
         // At most 2 lessons may be awaiting completion at any time — the rest of the
         // package can only be booked as those are completed or cancelled.
-        var scheduledCount = await repository.CountScheduledByEnrollmentAsync(request.EnrollmentId, cancellationToken);
         if (scheduledCount >= MaxPendingLessons)
             throw new InvalidOperationException(
                 $"You already have {MaxPendingLessons} lessons scheduled. " +

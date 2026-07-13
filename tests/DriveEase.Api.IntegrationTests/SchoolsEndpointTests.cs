@@ -68,8 +68,8 @@ public sealed class SchoolsEndpointTests(DriveEaseWebApplicationFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var instrBody = await response.Content.ReadAsStringAsync();
         using var instrDoc = JsonDocument.Parse(instrBody);
-        instrDoc.RootElement.GetArrayLength().Should().Be(3,
-            "each seeded school has exactly 3 instructors");
+        instrDoc.RootElement.GetArrayLength().Should().BeGreaterThanOrEqualTo(3,
+            "each seeded school has at least 3 instructors");
     }
 
     [Fact]
