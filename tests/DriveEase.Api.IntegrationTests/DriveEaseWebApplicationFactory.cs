@@ -144,4 +144,14 @@ public sealed class DriveEaseWebApplicationFactory
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return client;
     }
+
+    /// <summary>Creates an HttpClient pre-loaded with an Instructor JWT for the given instructor ID.</summary>
+    public HttpClient CreateInstructorClient(Guid instructorId, string email = "instructor@test.com", string fullName = "Test Instructor")
+    {
+        var token = JwtTestHelper.GenerateInstructorToken(
+            instructorId, email, fullName, TestJwtKey, TestJwtIssuer, TestJwtAudience);
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return client;
+    }
 }

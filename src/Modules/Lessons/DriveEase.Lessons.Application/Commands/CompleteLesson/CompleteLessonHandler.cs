@@ -15,6 +15,9 @@ public sealed class CompleteLessonHandler(
         var lesson = await repository.GetByIdAsync(request.LessonId, cancellationToken)
             ?? throw new InvalidOperationException($"Lesson {request.LessonId} not found.");
 
+        if (lesson.InstructorId != request.CallerInstructorId)
+            throw new UnauthorizedAccessException("You can only complete your own lessons.");
+
         var completedCount = await repository.CountCompletedByEnrollmentAsync(lesson.EnrollmentId, cancellationToken);
         var isLastInPackage = completedCount + 1 >= MaxLessonsPerEnrollment;
 

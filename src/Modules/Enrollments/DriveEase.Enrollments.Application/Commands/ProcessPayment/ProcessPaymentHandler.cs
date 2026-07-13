@@ -13,6 +13,9 @@ public sealed class ProcessPaymentHandler(
         var enrollment = await repository.GetByIdAsync(request.EnrollmentId, cancellationToken)
             ?? throw new InvalidOperationException($"Enrollment {request.EnrollmentId} not found.");
 
+        if (enrollment.StudentId != request.CallerStudentId)
+            throw new UnauthorizedAccessException("You can only pay for your own enrollment.");
+
         var success = await paymentGateway.ChargeAsync(enrollment.StudentId, enrollment.Fee, cancellationToken);
 
         if (success)

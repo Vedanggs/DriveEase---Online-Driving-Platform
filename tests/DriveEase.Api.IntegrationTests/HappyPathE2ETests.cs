@@ -103,8 +103,9 @@ public sealed class HappyPathE2ETests(DriveEaseWebApplicationFactory factory, IT
         var lessonId = lesson!.Id;
         output.WriteLine($"Lesson booked {lessonId}");
 
-        // ── Step 9: Complete the lesson (AllowAnonymous) ──────────────────────
-        var completeResp = await PostJsonAsync<object?>(_anon,
+        // ── Step 9: Complete the lesson (requires the assigned instructor's token) ──
+        var instructorClient = factory.CreateInstructorClient(Guid.Parse(instructorId));
+        var completeResp = await PostJsonAsync<object?>(instructorClient,
             $"/api/v1/lessons/{lessonId}/complete",
             new { Notes = "Excellent drive — no incidents." });
 

@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using DriveEase.Lessons.Application.Commands.BookLesson;
@@ -19,10 +21,14 @@ namespace DriveEase.Api.Controllers;
 [Route("api/v{version:apiVersion}/[controller]")]
 public sealed class LessonsController(ISender sender) : ControllerBase
 {
+    [Authorize(Policy = "Student")]
     [HttpPost]
     public async Task<IActionResult> Book([FromBody] BookLessonCommand command, CancellationToken cancellationToken)
     {
-        var id = await sender.Send(command, cancellationToken);
+        if (!TryGetCallerId(out var studentId))
+            return Unauthorized();
+
+        var id = await sender.Send(command with { StudentId = studentId }, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id }, new { id });
     }
 
@@ -73,12 +79,22 @@ public sealed class LessonsController(ISender sender) : ControllerBase
         return NoContent();
     }
 
-    [AllowAnonymous]
+    [Authorize(Policy = "Instructor")]
     [HttpPost("{id:guid}/complete")]
     public async Task<IActionResult> Complete(Guid id, [FromBody] CompleteLessonRequest? request, CancellationToken cancellationToken)
     {
-        await sender.Send(new CompleteLessonCommand(id, request?.Notes), cancellationToken);
+        if (!TryGetCallerId(out var instructorId))
+            return Unauthorized();
+
+        await sender.Send(new CompleteLessonCommand(id, instructorId, request?.Notes), cancellationToken);
         return NoContent();
+    }
+
+    private bool TryGetCallerId(out Guid callerId)
+    {
+        var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                  ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(sub, out callerId);
     }
 }
 

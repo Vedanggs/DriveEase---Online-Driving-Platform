@@ -37,4 +37,35 @@ public static class JwtTestHelper
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    public static string GenerateInstructorToken(
+        Guid instructorId,
+        string email,
+        string fullName,
+        string key,
+        string issuer,
+        string audience,
+        int expiryMinutes = 60)
+    {
+        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+        var creds = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, instructorId.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, email),
+            new Claim(JwtRegisteredClaimNames.Name, fullName),
+            new Claim(ClaimTypes.Role, "Instructor"),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
+            signingCredentials: creds);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
 }
