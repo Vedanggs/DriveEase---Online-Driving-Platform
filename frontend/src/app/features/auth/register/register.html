@@ -59,35 +59,17 @@
         </div>
 
         <div class="field">
-          <label>Date of Birth</label>
-          <div class="dob-row">
-            <select formControlName="dobDay" aria-label="Day"
-              [attr.aria-invalid]="form.controls.dobDay.invalid && form.controls.dobDay.touched">
-              <option value="" disabled>DD</option>
-              @for (d of days; track d) {
-                <option [value]="d">{{ d }}</option>
-              }
-            </select>
-
-            <select formControlName="dobMonth" aria-label="Month"
-              [attr.aria-invalid]="form.controls.dobMonth.invalid && form.controls.dobMonth.touched">
-              <option value="" disabled>Month</option>
-              @for (m of months; track m) {
-                <option [value]="m">{{ m }}</option>
-              }
-            </select>
-
-            <select formControlName="dobYear" aria-label="Year"
-              [attr.aria-invalid]="form.controls.dobYear.invalid && form.controls.dobYear.touched">
-              <option value="" disabled>YYYY</option>
-              @for (y of years; track y) {
-                <option [value]="y">{{ y }}</option>
-              }
-            </select>
-          </div>
-          @if ((form.controls.dobDay.invalid || form.controls.dobMonth.invalid || form.controls.dobYear.invalid)
-            && (form.controls.dobDay.touched || form.controls.dobMonth.touched || form.controls.dobYear.touched)) {
-            <span class="field-error" role="alert">Please select your date of birth</span>
+          <label for="dateOfBirth">Date of Birth</label>
+          <input
+            id="dateOfBirth"
+            type="date"
+            formControlName="dateOfBirth"
+            [max]="maxDob"
+            [min]="minDob"
+            aria-label="Date of birth"
+            [attr.aria-invalid]="form.controls.dateOfBirth.invalid && form.controls.dateOfBirth.touched" />
+          @if (form.controls.dateOfBirth.invalid && form.controls.dateOfBirth.touched) {
+            <span class="field-error" role="alert">You must be at least 18 and enter a valid date of birth.</span>
           }
         </div>
 

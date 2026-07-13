@@ -34,19 +34,23 @@ export class RegisterComponent implements AfterViewInit, OnDestroy {
     fullName:    ['', [Validators.required, Validators.maxLength(200)]],
     email:       ['', [Validators.required, Validators.email, Validators.maxLength(200)]],
     phoneNumber: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
-    dobDay:      ['', Validators.required],
-    dobMonth:    ['', Validators.required],
-    dobYear:     ['', Validators.required],
+    // Native <input type="date"> gives a YYYY-MM-DD string and makes impossible
+    // dates (Feb 31, leap-year Feb 29) unselectable — no day/month/year clamp logic needed.
+    dateOfBirth: ['', Validators.required],
     password:    ['', [Validators.required, Validators.maxLength(100), strongPassword]]
   });
 
-  readonly months = [
-    'January','February','March','April','May','June',
-    'July','August','September','October','November','December'
-  ];
+  private static readonly MinAgeYears = 18;
 
-  readonly days  = Array.from({ length: 31 }, (_, i) => i + 1);
-  readonly years = Array.from({ length: 41 }, (_, i) => 2005 - i);
+  // Latest allowed birthday = today minus 18 years, so the calendar can't offer an under-18 date.
+  get maxDob(): string {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - RegisterComponent.MinAgeYears);
+    return d.toISOString().split('T')[0];
+  }
+
+  // Oldest sensible birthday — bounds the calendar's lower end.
+  readonly minDob = '1940-01-01';
 
   private rafId: number | null = null;
   private offset = 0;
@@ -68,16 +72,13 @@ export class RegisterComponent implements AfterViewInit, OnDestroy {
     this.loading.set(true);
     this.error.set(null);
 
-    const v     = this.form.value;
-    const month = String(this.months.indexOf(v.dobMonth!) + 1).padStart(2, '0');
-    const day   = String(v.dobDay!).padStart(2, '0');
-    const dateOfBirth = `${v.dobYear}-${month}-${day}`;
-
+    const v = this.form.value;
+    // <input type="date"> already yields a YYYY-MM-DD string — exactly the backend format.
     this.auth.register({
       fullName:    v.fullName!,
       email:       v.email!,
       phoneNumber: v.phoneNumber || null,
-      dateOfBirth,
+      dateOfBirth: v.dateOfBirth!,
       password:    v.password!
     }).subscribe({
       next:  () => this.router.navigate(['/login']),
