@@ -43,6 +43,28 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   feedbackText = '';
   readonly submitting = signal(false);
 
+  static readonly MaxFeedbackLength = 100;
+
+  // Feedback must be real words: non-empty, within the length cap, and containing
+  // at least one letter — so "12345" or "@#$%" alone can't be submitted.
+  get feedbackValid(): boolean {
+    const t = this.feedbackText.trim();
+    return t.length > 0
+        && t.length <= InstructorDashboardComponent.MaxFeedbackLength
+        && /[a-zA-Z]/.test(t);
+  }
+
+  // A short reason to show the instructor when the feedback isn't valid yet.
+  get feedbackError(): string | null {
+    const t = this.feedbackText.trim();
+    if (t.length === 0) return null;                       // empty → no error, just disabled
+    if (t.length > InstructorDashboardComponent.MaxFeedbackLength) return 'Feedback must be 100 characters or fewer.';
+    if (!/[a-zA-Z]/.test(t)) return 'Feedback must include words, not just numbers or symbols.';
+    return null;
+  }
+
+  readonly maxFeedbackLength = InstructorDashboardComponent.MaxFeedbackLength;
+
   readonly isAvailable          = signal(true);
   readonly togglingAvailability = signal(false);
 
@@ -198,7 +220,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   }
 
   submitFeedback(lesson: InstructorLessonDto) {
-    if (!this.feedbackText.trim()) return;
+    if (!this.feedbackValid) return;
     this.submitting.set(true);
     const notes = this.feedbackText.trim();
     this.instructorService.completeLesson(lesson.id, notes).subscribe({

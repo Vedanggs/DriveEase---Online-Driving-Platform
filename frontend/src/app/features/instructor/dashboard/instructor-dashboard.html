@@ -245,14 +245,23 @@
                     <textarea
                       class="feedback-input"
                       [(ngModel)]="feedbackText"
+                      [maxlength]="maxFeedbackLength"
                       placeholder="E.g. Great progress on lane changes. Work on mirror checks next time…"
                       rows="3">
                     </textarea>
+                    <div class="feedback-meta">
+                      @if (feedbackError) {
+                        <span class="feedback-error" role="alert">{{ feedbackError }}</span>
+                      } @else {
+                        <span></span>
+                      }
+                      <span class="feedback-count">{{ feedbackText.length }}/{{ maxFeedbackLength }}</span>
+                    </div>
                     <div class="feedback-actions">
                       <button
                         class="btn-submit-feedback"
                         (click)="submitFeedback(lesson)"
-                        [disabled]="submitting() || !feedbackText.trim()">
+                        [disabled]="submitting() || !feedbackValid">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                         {{ submitting() ? 'Saving…' : 'Submit Feedback & Complete' }}
                       </button>
