@@ -343,7 +343,7 @@
           </div>
         } @else {
           <div class="history-list">
-            @for (group of feedbackGroups(); track group.studentId) {
+            @for (group of feedbackGroups(); track group.enrollmentId) {
               <div class="history-card">
                 <div class="history-card-header">
                   <div class="history-avatar">{{ avatarInitial(group.studentName) }}</div>

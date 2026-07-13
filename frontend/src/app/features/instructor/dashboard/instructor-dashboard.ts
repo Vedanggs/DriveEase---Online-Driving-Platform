@@ -13,6 +13,7 @@ interface InstructorSession {
 }
 
 interface FeedbackGroup {
+  enrollmentId: string;
   studentId: string;
   studentName: string;
   lessons: InstructorLessonDto[];
@@ -73,12 +74,20 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   readonly completedLessons = computed(() => this.lessons().filter(l => l.status === 'Completed'));
 
   readonly feedbackGroups = computed<FeedbackGroup[]>(() => {
+    // Group by enrollment, not student — a student who re-enrolls starts a fresh
+    // 5-lesson package, so each enrollment must be its own card. Grouping by student
+    // would merge both packages and show a misleading "6 / 5".
     const map = new Map<string, FeedbackGroup>();
     for (const l of this.completedLessons()) {
-      if (!map.has(l.studentId)) {
-        map.set(l.studentId, { studentId: l.studentId, studentName: l.studentName || 'Student', lessons: [] });
+      if (!map.has(l.enrollmentId)) {
+        map.set(l.enrollmentId, {
+          enrollmentId: l.enrollmentId,
+          studentId: l.studentId,
+          studentName: l.studentName || 'Student',
+          lessons: []
+        });
       }
-      map.get(l.studentId)!.lessons.push(l);
+      map.get(l.enrollmentId)!.lessons.push(l);
     }
     for (const g of map.values()) {
       g.lessons.sort((a, b) => toUtcDate(a.scheduledAt).getTime() - toUtcDate(b.scheduledAt).getTime());
