@@ -29,8 +29,31 @@ public sealed class OutboxRelayWorker(
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await RelayAsync(stoppingToken);
-            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            // A transient failure (e.g. a SQL timeout when the DB is cold) must never
+            // escape this loop — an unhandled exception here permanently stops the
+            // BackgroundService, silently killing outbox relay (and thus all
+            // notifications) until the app is restarted. Log and retry next tick instead.
+            try
+            {
+                await RelayAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Outbox relay cycle failed; will retry on the next poll.");
+            }
+
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 

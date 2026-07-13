@@ -31,8 +31,29 @@ public sealed class LessonExpiryWorker(
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            await ExpireOverdueLessonsAsync(stoppingToken);
-            await Task.Delay(Interval, stoppingToken);
+            // A transient failure must never escape this loop — an unhandled exception
+            // permanently stops the BackgroundService until the app restarts.
+            try
+            {
+                await ExpireOverdueLessonsAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "LessonExpiryWorker tick failed; will retry on the next poll.");
+            }
+
+            try
+            {
+                await Task.Delay(Interval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 
