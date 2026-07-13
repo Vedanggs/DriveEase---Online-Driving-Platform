@@ -17,6 +17,8 @@ interface HistoryGroup {
   lessons: LessonDto[];
 }
 
+const MAX_LESSONS_PER_ENROLLMENT = 5;
+
 @Component({
   selector: 'app-my-lessons',
   standalone: true,
@@ -82,8 +84,13 @@ export class MyLessonsComponent implements OnInit {
         enrolledAt: this.enrolledAtMap().get(enrollmentId) ?? '',
         lessons: [...lessons].sort((a, b) => toUtcDate(a.scheduledAt).getTime() - toUtcDate(b.scheduledAt).getTime())
       }))
+      // Only enrollments with at least one completed lesson belong in history —
+      // scheduled/cancelled-only enrollments have nothing worth showing here.
+      .filter(g => g.lessons.some(l => l.status.toLowerCase() === 'completed'))
       .sort((a, b) => toUtcDate(b.enrolledAt).getTime() - toUtcDate(a.enrolledAt).getTime());
   });
+
+  readonly maxLessonsPerEnrollment = MAX_LESSONS_PER_ENROLLMENT;
 
   readonly hasActiveEnrollment = computed(() => !!this.activeEnrollmentId());
 
@@ -246,7 +253,11 @@ export class MyLessonsComponent implements OnInit {
     return group.lessons.filter(l => l.status.toLowerCase() === 'completed').length;
   }
 
+  completedLessons(group: HistoryGroup): LessonDto[] {
+    return group.lessons.filter(l => l.status.toLowerCase() === 'completed');
+  }
+
   isGroupFullyCompleted(group: HistoryGroup): boolean {
-    return group.lessons.length > 0 && group.lessons.every(l => l.status.toLowerCase() === 'completed');
+    return this.completedCount(group) >= MAX_LESSONS_PER_ENROLLMENT;
   }
 }

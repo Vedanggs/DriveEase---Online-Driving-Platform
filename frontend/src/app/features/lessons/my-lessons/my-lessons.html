@@ -168,7 +168,7 @@
                 <span class="history-school-name">{{ group.schoolName }}</span>
                 <span class="history-school-meta">
                   Enrolled {{ formatEnrolledAt(group.enrolledAt) }} ·
-                  {{ completedCount(group) }} of {{ group.lessons.length }} lesson{{ group.lessons.length !== 1 ? 's' : '' }} completed
+                  {{ completedCount(group) }} of {{ maxLessonsPerEnrollment }} lessons completed
                 </span>
               </div>
               @if (isGroupFullyCompleted(group)) {
@@ -181,7 +181,7 @@
               }
             </div>
             <div class="history-lessons">
-              @for (lesson of group.lessons; track lesson.id; let i = $index) {
+              @for (lesson of completedLessons(group); track lesson.id; let i = $index) {
                 <div class="history-row">
                   <div class="history-num">{{ i + 1 }}</div>
                   <div class="history-date-block">
@@ -196,11 +196,7 @@
                       <p class="history-no-feedback">No feedback recorded</p>
                     }
                   </div>
-                  @if (lesson.status.toLowerCase() === 'scheduled' && isOverdue(lesson)) {
-                    <app-status-badge status="Overdue" />
-                  } @else {
-                    <app-status-badge [status]="lesson.status" />
-                  }
+                  <app-status-badge [status]="lesson.status" />
                 </div>
               }
             </div>
