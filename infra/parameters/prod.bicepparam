@@ -10,4 +10,6 @@ using '../main.bicep'
 param environmentName  = 'prod'
 param location         = 'centralindia'      // swap to paired region (e.g. westus2) for geo-HA
 param sqlAdminLogin    = 'sqladmin'
-param sqlAdminPassword = readEnvironmentVariable('SQL_ADMIN_PASSWORD', 'Prod@Str0ng#2025!')
+// No fallback on purpose — deployment fails fast if SQL_ADMIN_PASSWORD isn't set,
+// so a real prod secret can never be baked into source control.
+param sqlAdminPassword = readEnvironmentVariable('SQL_ADMIN_PASSWORD')
