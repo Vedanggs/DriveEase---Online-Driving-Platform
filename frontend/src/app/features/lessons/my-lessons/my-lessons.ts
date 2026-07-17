@@ -172,6 +172,13 @@ export class MyLessonsComponent implements OnInit {
     });
   }
 
+  private readonly MIN_CANCEL_NOTICE_MS = 15 * 60 * 1000;  // 15 minutes
+
+  /** A lesson can't be cancelled within 15 minutes of its start time (mirrors the backend rule). */
+  canCancel(lesson: LessonDto): boolean {
+    return toUtcDate(lesson.scheduledAt).getTime() - Date.now() >= this.MIN_CANCEL_NOTICE_MS;
+  }
+
   requestCancel(lessonId: string) {
     if (this.cancellingId()) return;
     this.confirmingLessonId.set(lessonId);

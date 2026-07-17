@@ -128,9 +128,12 @@
                 <button
                   class="btn-cancel-lesson"
                   (click)="requestCancel(lesson.id)"
-                  [disabled]="cancellingId() !== null">
+                  [disabled]="cancellingId() !== null || !canCancel(lesson)">
                   {{ cancellingId() === lesson.id ? 'Cancelling…' : 'Cancel lesson' }}
                 </button>
+                @if (!canCancel(lesson)) {
+                  <span class="cancel-hint">Can't cancel within 15 min of the start time.</span>
+                }
               }
               @if (lesson.status.toLowerCase() === 'cancelled') {
                 <a class="btn-rebook-lesson" routerLink="/lessons/book">
