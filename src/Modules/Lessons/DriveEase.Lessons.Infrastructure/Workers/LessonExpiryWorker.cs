@@ -62,10 +62,11 @@ public sealed class LessonExpiryWorker(
         using var scope = scopeFactory.CreateScope();
         var repository  = scope.ServiceProvider.GetRequiredService<ILessonRepository>();
 
-        // ScheduledAt values are stored as DateTimeKind.Unspecified representing local time
-        // (the frontend sends "2026-06-26T12:00:00" without a timezone marker).
-        // Use DateTime.Now (local) so the comparison is apples-to-apples.
-        var now = DateTime.Now;
+        // ScheduledAt is stored in UTC (the frontend converts to UTC via toISOString()
+        // before sending). Compare against UtcNow — using local DateTime.Now here would
+        // shift the comparison by the server's timezone offset and expire lessons early
+        // on any non-UTC machine (e.g. an IST dev box cancelling lessons ~5.5h too soon).
+        var now = DateTime.UtcNow;
 
         // DB: fetch all Scheduled lessons whose start time is already in the past.
         // Duration cannot be used in EF/SQLite LINQ, so we load candidates and
