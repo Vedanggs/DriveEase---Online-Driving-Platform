@@ -227,7 +227,14 @@ var sqlResolved = !string.IsNullOrWhiteSpace(sqlConn) &&
 
 // Stable local fallback: %LocalAppData% survives sign-out/restart, unlike %TEMP%
 // which the OS/antivirus/Storage Sense can purge at any time.
-var localDbDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DriveEase");
+// LocalApplicationData resolves to /app on a non-root Linux container (Render), which the
+// 'app' user can't create dirs under — use the always-writable temp dir on Linux instead.
+// Windows keeps %LocalAppData%. Only the SQLite fallback branch uses this; SQL Server (Azure) skips it.
+var localDbDir = Path.Combine(
+    OperatingSystem.IsWindows()
+        ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+        : Path.GetTempPath(),
+    "DriveEase");
 
 string DbPath(string module) =>
     $"Data Source={Path.Combine(localDbDir, $"driveease-{module}.db")}";
